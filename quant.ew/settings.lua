@@ -271,6 +271,13 @@ local function build_settings()
             ui_description = "misc",
             settings = {
                 {
+                    id = "revive_on_drop",
+                    ui_name = "revive heart statue on drop",
+                    ui_description = "respawn dead player anywhere when their heart statue is dropped or thrown",
+                    value_default = false,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "flex",
                     ui_name = "flexible updates",
                     ui_description = "some esotaric chunk thing, may help performance, buggy",
