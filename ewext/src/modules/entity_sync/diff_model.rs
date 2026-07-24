@@ -420,10 +420,11 @@ impl LocalDiffModelTracker {
             }
         }
 
-        if let Some(damage) =
-            entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+        if entity.is_alive()
+            && let Some(damage) =
+                entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+            && let Ok(hp) = damage.hp()
         {
-            let hp = damage.hp()?;
             info.hp = hp as f32;
         }
 
@@ -1076,16 +1077,21 @@ impl LocalDiffModel {
             mom(entity_manager, entity_data.counter, None)?;
             sun(entity_manager, entity_data.counter)?;
             if entity_data.hp != -1.0
+                && entity.is_alive()
                 && let Some(damage) = entity_manager
                     .try_get_first_component::<DamageModelComponent>(ComponentTag::None)
             {
-                if entity_data.hp > damage.max_hp_cap()? as f32 {
-                    damage.set_max_hp_cap(entity_data.hp as f64)?;
+                if let Ok(cap) = damage.max_hp_cap()
+                    && entity_data.hp > cap as f32
+                {
+                    let _ = damage.set_max_hp_cap(entity_data.hp as f64);
                 }
-                if entity_data.hp > damage.max_hp()? as f32 {
-                    damage.set_max_hp(entity_data.hp as f64)?;
+                if let Ok(max) = damage.max_hp()
+                    && entity_data.hp > max as f32
+                {
+                    let _ = damage.set_max_hp(entity_data.hp as f64);
                 }
-                damage.set_hp(entity_data.hp as f64)?;
+                let _ = damage.set_hp(entity_data.hp as f64);
             }
             if !entity_data.drops_gold {
                 let n = entity_manager
@@ -1781,46 +1787,54 @@ impl RemoteDiffModel {
                 vel.set_m_velocity((vx, vy))?;
             }
         }
-        if let Some(damage) =
-            entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+        if entity.is_alive()
+            && let Some(damage) =
+                entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
         {
-            if entity_info.hp > damage.max_hp()? as f32 {
-                damage.set_max_hp(entity_info.hp as f64)?
+            if let Ok(max_hp) = damage.max_hp()
+                && entity_info.hp > max_hp as f32
+            {
+                let _ = damage.set_max_hp(entity_info.hp as f64);
             }
-            let current_hp = damage.hp()? as f32;
-            if current_hp > entity_info.hp {
-                let old = damage.object_get_value::<f64>("damage_multipliers", "curse")?;
-                if old != 1.0 {
-                    damage.object_set_value("damage_multipliers", "curse", 1.0)?
+            if let Ok(current_hp) = damage.hp().map(|h| h as f32) {
+                if current_hp > entity_info.hp {
+                    let old = damage
+                        .object_get_value::<f64>("damage_multipliers", "curse")
+                        .unwrap_or(1.0);
+                    if old != 1.0 {
+                        let _ = damage.object_set_value("damage_multipliers", "curse", 1.0);
+                    }
+                    let _ = entity.inflict_damage(
+                        (current_hp - entity_info.hp) as f64,
+                        DamageType::DamageCurse,
+                        "hp sync",
+                        None,
+                    );
+                    if old != 0.0 {
+                        let _ = damage.object_set_value("damage_multipliers", "curse", old);
+                    }
+                    let _ = damage.set_hp(entity_info.hp as f64);
+                } else if current_hp < entity_info.hp {
+                    if current_hp < 0.0 && entity_info.hp >= 0.0 {
+                        let _ = damage.set_hp(f32::MIN_POSITIVE as f64);
+                    }
+                    let old = damage
+                        .object_get_value::<f64>("damage_multipliers", "healing")
+                        .unwrap_or(1.0);
+                    if old != 0.0 {
+                        let _ = damage.object_set_value("damage_multipliers", "healing", 1.0);
+                    }
+                    let _ = entity.inflict_damage(
+                        (current_hp - entity_info.hp) as f64,
+                        DamageType::DamageHealing,
+                        "hp sync",
+                        None,
+                    );
+                    if old != 1.0 {
+                        let _ = damage.object_set_value("damage_multipliers", "healing", old);
+                    }
+                    let _ = damage.set_hp(entity_info.hp as f64);
                 }
-                entity.inflict_damage(
-                    (current_hp - entity_info.hp) as f64,
-                    DamageType::DamageCurse,
-                    "hp sync",
-                    None,
-                )?;
-                if old != 0.0 {
-                    damage.object_set_value("damage_multipliers", "curse", old)?
-                }
-                damage.set_hp(entity_info.hp as f64)?;
-            } else if current_hp < entity_info.hp {
-                if current_hp < 0.0 && entity_info.hp >= 0.0 {
-                    damage.set_hp(f32::MIN_POSITIVE as f64)?;
-                }
-                let old = damage.object_get_value::<f64>("damage_multipliers", "healing")?;
-                if old != 0.0 {
-                    damage.object_set_value("damage_multipliers", "healing", 1.0)?
-                }
-                entity.inflict_damage(
-                    (current_hp - entity_info.hp) as f64,
-                    DamageType::DamageHealing,
-                    "hp sync",
-                    None,
-                )?;
-                if old != 0.0 {
-                    damage.object_set_value("damage_multipliers", "healing", old)?
-                }
-                damage.set_hp(entity_info.hp as f64)?;
             }
         }
 
@@ -2098,8 +2112,9 @@ impl RemoteDiffModel {
             {
                 inv.children(None).for_each(|e| e.kill())
             }
-            if let Some(damage) =
-                entity_manager.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+            if entity.is_alive()
+                && let Some(damage) = entity_manager
+                    .try_get_first_component::<DamageModelComponent>(ComponentTag::None)
             {
                 entity_manager.remove_ent(&entity);
                 entity
@@ -2107,24 +2122,28 @@ impl RemoteDiffModel {
                     .for_each(|ent| ent.kill());
                 self.pending_remove.retain(|l| l != &lid);
                 if !wait_on_kill {
-                    damage.set_wait_for_kill_flag_on_death(false)?;
+                    let _ = damage.set_wait_for_kill_flag_on_death(false);
                 }
-                damage.object_set_value("damage_multipliers", "curse", 1.0)?;
-                entity.inflict_damage(
-                    damage.hp()? + f32::MIN_POSITIVE as f64,
-                    DamageType::DamageCurse,
-                    "kill sync",
-                    responsible_entity,
-                )?;
-                damage.set_ui_report_damage(false)?;
-                entity.inflict_damage(
-                    damage.max_hp()? * 100.0,
-                    DamageType::DamageCurse,
-                    "kill sync",
-                    responsible_entity,
-                )?;
+                let _ = damage.object_set_value("damage_multipliers", "curse", 1.0);
+                if let Ok(hp) = damage.hp() {
+                    let _ = entity.inflict_damage(
+                        hp + f32::MIN_POSITIVE as f64,
+                        DamageType::DamageCurse,
+                        "kill sync",
+                        responsible_entity,
+                    );
+                }
+                let _ = damage.set_ui_report_damage(false);
+                if let Ok(max) = damage.max_hp() {
+                    let _ = entity.inflict_damage(
+                        max * 100.0,
+                        DamageType::DamageCurse,
+                        "kill sync",
+                        responsible_entity,
+                    );
+                }
                 if wait_on_kill {
-                    damage.set_kill_now(true)?;
+                    let _ = damage.set_kill_now(true);
                 } else {
                     entity.kill()
                 }
