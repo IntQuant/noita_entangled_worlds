@@ -98,6 +98,7 @@ fn cli_setup(
     } = settings;
     paths.proxy_settings = Some(save_paths.settings_path.clone());
     paths.proxy_save_state = Some(save_paths.save_state_path.clone());
+    paths.steam_install = paths::get_steam_install();
     let mut state = steam_helper::SteamState::new(saved_state.spacewars).ok();
     let my_nickname = saved_state
         .nickname
