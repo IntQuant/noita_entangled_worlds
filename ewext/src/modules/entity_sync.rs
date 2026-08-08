@@ -565,23 +565,14 @@ impl Module for EntitySync {
                 if self
                     .entity_manager
                     .has_tag(const { CachedTag::from_tag("card_action") })
-                {
-                    if let Some(cost) = self
+                    && let Some(cost) = self
                         .entity_manager
                         .try_get_first_component::<ItemCostComponent>(ComponentTag::None)
-                        && cost.stealable()?
-                    {
-                        cost.set_stealable(false)?;
-                        self.entity_manager
-                            .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
-                    }
-                    if let Some(vel) = self
-                        .entity_manager
-                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)
-                    {
-                        vel.set_gravity_y(0.0)?;
-                        vel.set_air_friction(10.0)?;
-                    }
+                    && cost.stealable()?
+                {
+                    cost.set_stealable(false)?;
+                    self.entity_manager
+                        .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
                 }
                 self.to_track.push(entity);
             }

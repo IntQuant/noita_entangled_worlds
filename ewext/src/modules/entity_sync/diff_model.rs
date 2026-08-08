@@ -2,7 +2,7 @@ use super::NetManager;
 use crate::{ephemerial, modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt, eyre};
-use noita_api::raw::raytrace_platforms;
+use noita_api::raw::{does_world_exist_at, raytrace_platforms};
 use noita_api::serialize::{deserialize_entity, serialize_entity};
 use noita_api::{
     AIAttackComponent, AbilityComponent, AdvancedFishAIComponent, AnimalAIComponent,
@@ -12,8 +12,9 @@ use noita_api::{
     IKLimbAttackerComponent, IKLimbComponent, IKLimbWalkerComponent, IKLimbsAnimatorComponent,
     Inventory2Component, ItemComponent, ItemCostComponent, ItemPickUpperComponent,
     LaserEmitterComponent, LifetimeComponent, LuaComponent, PhysData, PhysicsAIComponent,
-    PhysicsBody2Component, PhysicsBodyComponent, SpriteComponent, StreamingKeepAliveComponent,
-    VarName, VariableStorageComponent, VelocityComponent, WormComponent, game_print,
+    PhysicsBody2Component, PhysicsBodyComponent, SimplePhysicsComponent, SpriteComponent,
+    StreamingKeepAliveComponent, VarName, VariableStorageComponent, VelocityComponent,
+    WormComponent, game_print,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{
@@ -406,18 +407,8 @@ impl LocalDiffModelTracker {
             (info.vx, info.vy) = vel.m_velocity()?;
         }
 
-        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") })
-            && let Some(vel) =
-                entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-        {
-            let (cx, cy) = entity_manager.camera_pos();
-            if ((cx - x) as f32).powi(2) + ((cy - y) as f32).powi(2) > 512.0 * 512.0 {
-                vel.set_gravity_y(0.0)?;
-                vel.set_air_friction(10.0)?;
-            } else {
-                vel.set_gravity_y(400.0)?;
-                vel.set_air_friction(0.55)?;
-            }
+        if info.kind == EntityKind::Item && !item_and_was_picked {
+            hold_over_ungenerated_world(entity_manager, x, y)?;
         }
 
         if let Some(damage) =
@@ -633,6 +624,11 @@ impl LocalDiffModelTracker {
                 }
             }
         }
+        // Gravity used to be driven off this countdown, which gave a spell 48
+        // frames of hovering after it was spawned and then dropped it whether or
+        // not there was anything under it yet. hold_over_ungenerated_world above
+        // waits for the terrain instead; this only decides when a shop item
+        // becomes stealable again.
         if let Some(var) = entity_manager.get_var(const { VarName::from_str("ew_was_stealable") }) {
             let n = var.value_int()?;
             if n == 1 {
@@ -645,28 +641,10 @@ impl LocalDiffModelTracker {
                         entity_manager.remove_component(var)?;
                     }
                 }
-                if let Some(vel) =
-                    entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-                {
-                    vel.set_gravity_y(400.0)?;
-                    vel.set_air_friction(0.55)?;
-                }
             } else if n == 0 {
                 var.set_value_int(48)?;
-                if let Some(vel) =
-                    entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-                {
-                    vel.set_gravity_y(0.0)?;
-                    vel.set_air_friction(10.0)?;
-                }
             } else {
                 var.set_value_int(n - 1)?;
-                if let Some(vel) =
-                    entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-                {
-                    vel.set_gravity_y(0.0)?;
-                    vel.set_air_friction(10.0)?;
-                }
             }
         }
         Ok(false)
@@ -883,12 +861,10 @@ impl LocalDiffModel {
         var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(true)?;
 
-        if entity_manager.has_tag(const { CachedTag::from_tag("card_action") })
-            && let Some(vel) =
-                entity_manager.try_get_first_component::<VelocityComponent>(ComponentTag::None)
-        {
-            vel.set_gravity_y(0.0)?;
-            vel.set_air_friction(10.0)?;
+        // Must come after spawn_info was serialized above, or every peer that
+        // later spawns this item from that data inherits the disabled physics.
+        if entity_kind == EntityKind::Item && !item_in_inventory(entity)? {
+            hold_over_ungenerated_world(entity_manager, x, y)?;
         }
 
         if entity_manager
@@ -2400,6 +2376,57 @@ pub fn init_remote_entity(
         ephemerial(entity.0.get() as u32)?
     }
 
+    Ok(())
+}
+
+/// Keeps an item still while there is no world under it to land on.
+///
+/// A holy mountain hands us its shop items - and an authority transfer hands us
+/// items a leaving peer was tracking - as soon as the entities exist, which can
+/// be well before our own copy of the chunk they sit in has generated. Noita
+/// gives them nothing to collide with in the meantime, so they fall straight
+/// through and are already below the shop by the time the terrain pops in. Since
+/// the peer with authority is the one everybody else copies positions from, one
+/// slow generation is enough to lose the wands for the whole lobby.
+///
+/// Disabling SimplePhysicsComponent (which both wands and cards have) stops the
+/// fall and keeps explosions from moving the item, and Noita enables it again
+/// by itself when the item is dropped from an inventory. `ew_no_ground` marks
+/// items we disabled it on, so one that was already disabled - like a wand
+/// placed by EZWand - is left alone once the world shows up.
+fn hold_over_ungenerated_world(
+    entity_manager: &mut EntityManager,
+    x: f64,
+    y: f64,
+) -> eyre::Result<()> {
+    let held = entity_manager.get_var(const { VarName::from_str("ew_no_ground") });
+    let has_world = does_world_exist_at(
+        (x - 4.0) as i32,
+        (y - 4.0) as i32,
+        (x + 4.0) as i32,
+        (y + 8.0) as i32,
+    )?;
+    match (has_world, held) {
+        (false, None) => {
+            if let Some(physics) =
+                entity_manager.try_get_first_component::<SimplePhysicsComponent>(ComponentTag::None)
+            {
+                entity_manager.set_component_enabled(physics, false)?;
+                entity_manager.get_var_or_default(const { VarName::from_str("ew_no_ground") })?;
+            }
+        }
+        (true, Some(var)) => {
+            if let Some(physics) = entity_manager
+                .try_get_first_component_including_disabled::<SimplePhysicsComponent>(
+                    ComponentTag::None,
+                )
+            {
+                entity_manager.set_component_enabled(physics, true)?;
+            }
+            entity_manager.remove_component(var)?;
+        }
+        _ => {}
+    }
     Ok(())
 }
 

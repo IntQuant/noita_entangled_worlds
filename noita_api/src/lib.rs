@@ -1008,8 +1008,9 @@ pub enum CachedComponent {
     AudioComponent,
     AbilityComponent,
     StatusEffectDataComponent,
+    SimplePhysicsComponent,
 }
-const COMP_LEN: usize = 32;
+const COMP_LEN: usize = 33;
 impl CachedComponent {
     const fn from_component<C: Component>() -> Self {
         match C::NAME_STR.as_bytes() {
@@ -1045,6 +1046,7 @@ impl CachedComponent {
             b"AudioComponent" => Self::AudioComponent,
             b"AbilityComponent" => Self::AbilityComponent,
             b"StatusEffectDataComponent" => Self::StatusEffectDataComponent,
+            b"SimplePhysicsComponent" => Self::SimplePhysicsComponent,
             _ => unreachable!(),
         }
     }
@@ -1082,6 +1084,7 @@ impl CachedComponent {
             "AudioComponent" => Self::AudioComponent,
             "AbilityComponent" => Self::AbilityComponent,
             "StatusEffectDataComponent" => Self::StatusEffectDataComponent,
+            "SimplePhysicsComponent" => Self::SimplePhysicsComponent,
             _ => return None,
         })
     }
@@ -1098,6 +1101,7 @@ pub enum VarName {
     EwGidLid,
     Active,
     EwHasStarted,
+    EwNoGround,
     Unknown,
 }
 impl VarName {
@@ -1112,6 +1116,7 @@ impl VarName {
             b"ew_gid_lid" => Self::EwGidLid,
             b"active" => Self::Active,
             b"ew_has_started" => Self::EwHasStarted,
+            b"ew_no_ground" => Self::EwNoGround,
             _ => unreachable!(),
         }
     }
@@ -1126,6 +1131,7 @@ impl VarName {
             b"ew_gid_lid" => Self::EwGidLid,
             b"active" => Self::Active,
             b"ew_has_started" => Self::EwHasStarted,
+            b"ew_no_ground" => Self::EwNoGround,
             _ if s.is_empty() => Self::None,
             _ => Self::Unknown,
         }
@@ -1142,6 +1148,7 @@ impl VarName {
             Self::EwGidLid => "ew_gid_lid",
             Self::Active => "active",
             Self::EwHasStarted => "ew_has_started",
+            Self::EwNoGround => "ew_no_ground",
             Self::Unknown => unreachable!(),
         }
     }
@@ -1259,11 +1266,20 @@ impl ComponentData {
     }
 }
 const COMP_VEC_LEN: usize = 1;
-#[derive(Default)]
 struct EntityData {
     tags: Tags<u16>, //[bool; TAG_LEN],
     phys_init: bool,
     components: [SmallVec<[ComponentData; COMP_VEC_LEN]>; COMP_LEN],
+}
+// Arrays only implement Default up to 32 elements, so this can't be derived.
+impl Default for EntityData {
+    fn default() -> Self {
+        Self {
+            tags: Tags(0),
+            phys_init: false,
+            components: std::array::from_fn(|_| SmallVec::new()),
+        }
+    }
 }
 pub struct EntityManager {
     cache: FxHashMap<EntityID, EntityData>,
