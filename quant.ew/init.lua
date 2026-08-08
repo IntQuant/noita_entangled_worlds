@@ -63,10 +63,7 @@ local function load_modules()
     ctx.load_system("uniq_flags")
     ctx.load_system("ewext_init")
 
-    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/item_sync.lua")
-
     ctx.dofile_and_add_hooks("mods/quant.ew/files/system/player_sync.lua")
-    -- ctx.dofile_and_add_hooks("mods/quant.ew/files/system/enemy_sync.lua")
 
     if ctx.proxy_opt.game_mode == "shared_health" then
         ctx.load_system("damage")
