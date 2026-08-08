@@ -341,7 +341,7 @@ function OnProjectileFiredPost(
         if vel ~= nil then
             local x, y = ComponentGetValue2(vel, "mVelocity")
             local m = shooter_player_data.fps / ctx.my_player.fps
-            ComponentSetValue2(vel, x * m, y * m)
+            ComponentSetValue2(vel, "mVelocity", x * m, y * m)
         end
     end
 end
