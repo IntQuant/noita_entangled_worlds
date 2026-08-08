@@ -197,6 +197,17 @@ impl EntitySync {
     ) -> eyre::Result<()> {
         let len = self.spawn_once.len();
         if len > 0 {
+            // TODO: same truncating index-window that `get_pos_data` used to have: `len / 20`
+            // rounds down, so a cycle never reaches past `20 * (len / 20)` and the last
+            // `len % 20` entries wait for a later cycle. Deliberately not converted alongside
+            // `get_pos_data`, for two reasons: it cannot underflow (the `while i > start_index`
+            // loop just no-ops when the window is empty), and the starvation is transient rather
+            // than permanent, because entries are removed as they spawn so `len` shrinks until
+            // the tail comes into range. It is also not the mechanical change it looks like --
+            // the loop body borrows `self.spawn_once[i]` while calling `&mut self` methods.
+            //
+            // The bigger problem here is that `spawn_once` is only drained when the camera comes
+            // within range and nothing ever prunes it, so it grows unboundedly over a session.
             let batch_size = (len / 20).max(1);
             let start_index = (frame_num % 20) * batch_size;
             let end_index = (start_index + batch_size).min(len);

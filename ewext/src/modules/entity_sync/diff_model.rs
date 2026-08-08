@@ -88,12 +88,24 @@ impl LocalDiffModel {
     }
     pub(crate) fn get_pos_data(&mut self, frame_num: usize) -> Vec<UpdateOrUpload> {
         // Spread the entries over a 60-frame cycle: on frame `phase` we visit every entry whose
-        // position in the iteration order is congruent to `phase` mod 60. Compared to an
-        // index-window (`skip(start).take(batch_size)`) this covers 100% of the entries every 60
-        // frames (a window based on `len / 60` starves the last `len % 60` entries), spreads the
-        // work evenly across the cycle, and cannot underflow when `len < 60`.
+        // position in the iteration order is congruent to `phase` mod 60.
+        //
+        // This replaces an index-window (`skip(start).take(batch_size)` with
+        // `batch_size = len / 60`), which truncated: it never reached past `60 * (len / 60)`, so
+        // the last `len % 60` entries were *systematically* starved -- at `len = 119` that was 59
+        // of 119 entities never sending a position update. It also underflowed when `len < 60`,
+        // which panics under the dev profile's overflow-checks.
+        //
+        // Note this is a best-effort spread, not a guarantee: `entity_entries` is a hash map and
+        // an entry's index shifts on insert/remove/rehash, so coverage over any given 60 frames
+        // can still transiently skip or repeat an entry. That is strictly better than the old
+        // systematic starvation, but it is not "every entry exactly once per cycle".
         let phase = frame_num % 60;
         let mut upload = std::mem::take(&mut self.upload);
+        // Entries whose `current` was unexpectedly absent. Counted rather than logged per-entry:
+        // if the invariant ever breaks it likely breaks for many entries at once, and logging in
+        // a per-frame loop would itself cost frame time.
+        let mut missing_current = 0usize;
         let mut res: Vec<UpdateOrUpload> = self
             .entity_entries
             .iter()
@@ -107,8 +119,12 @@ impl LocalDiffModel {
                     last,
                 } = p
                 else {
-                    // Not expected to happen, but this is an injected DLL: a panic here would
-                    // abort the game process, so skip the entry instead.
+                    // `current` is only absent while it is temporarily taken (see `make_init` /
+                    // `uninit`), and those always restore it before we run. If that ever stops
+                    // holding, skip rather than panic: this is a DLL injected into Noita, so a
+                    // panic aborts the game process. The lid stays in `upload` and is preserved
+                    // by the drain loop below.
+                    missing_current += 1;
                     return None;
                 };
                 if last.is_some() && !self.dont_save.contains(lid) {
@@ -145,32 +161,47 @@ impl LocalDiffModel {
             })
             .collect();
         for lid in upload {
-            if let Some(EntityEntryPair {
-                current: Some(current),
-                gid,
-                last,
-            }) = self.entity_entries.get(&lid)
-                && !self.dont_upload.contains(&lid)
-            {
-                if last.is_some() {
-                    res.push(UpdateOrUpload::Upload(FullEntityData {
-                        gid: *gid,
-                        pos: WorldPos::from_f32(current.x, current.y),
-                        data: current.spawn_info.clone(),
-                        wand: current.wand.clone().map(|(_, w, _)| w),
-                        //rotation: entry_pair.current.r,
-                        drops_gold: current.drops_gold,
-                        is_charmed: current.is_charmed(),
-                        hp: current.hp,
-                        max_hp: current.max_hp,
-                        counter: current.counter,
-                        phys: current.phys.clone(),
-                        synced_var: current.synced_var.clone(),
-                    }));
-                } else {
+            if self.dont_upload.contains(&lid) {
+                continue;
+            }
+            match self.entity_entries.get(&lid) {
+                Some(EntityEntryPair {
+                    current: Some(current),
+                    gid,
+                    last,
+                }) => {
+                    if last.is_some() {
+                        res.push(UpdateOrUpload::Upload(FullEntityData {
+                            gid: *gid,
+                            pos: WorldPos::from_f32(current.x, current.y),
+                            data: current.spawn_info.clone(),
+                            wand: current.wand.clone().map(|(_, w, _)| w),
+                            //rotation: entry_pair.current.r,
+                            drops_gold: current.drops_gold,
+                            is_charmed: current.is_charmed(),
+                            hp: current.hp,
+                            max_hp: current.max_hp,
+                            counter: current.counter,
+                            phys: current.phys.clone(),
+                            synced_var: current.synced_var.clone(),
+                        }));
+                    } else {
+                        self.upload.insert(lid);
+                    }
+                }
+                // Entry is present but `current` is absent. `upload` was taken from `self.upload`
+                // at the top, so dropping the lid here would discard the pending upload
+                // permanently and silently. Put it back and retry next frame instead.
+                Some(_) => {
                     self.upload.insert(lid);
                 }
+                None => {}
             }
+        }
+        if missing_current != 0 {
+            noita_api::print(format!(
+                "ewext: get_pos_data skipped {missing_current} entry/entries with no current data"
+            ));
         }
         res
     }
