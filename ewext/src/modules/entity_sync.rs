@@ -6,7 +6,7 @@
 use super::{Module, ModuleCtx, NetManager};
 use crate::my_peer_id;
 use bimap::BiHashMap;
-use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, entity_is_item};
+use diff_model::{DES_TAG, LocalDiffModel, RemoteDiffModel, RootCache, entity_is_item_cached};
 use eyre::{Context, OptionExt};
 use interest::InterestTracker;
 use noita_api::serialize::serialize_entity;
@@ -121,10 +121,12 @@ impl Default for EntitySync {
     }
 }
 
-fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
+/// `tags` must be the entity's tag list wrapped in commas, i.e. `format!(",{},", entity.tags()?)`.
+/// `root` memoizes `entity.root()`. Both are taken as parameters so callers that already fetched
+/// them do not pay for a second Lua round-trip.
+fn entity_is_excluded(entity: EntityID, tags: &str, root: &mut RootCache) -> eyre::Result<bool> {
     let good = "data/entities/items/wands/wand_good/wand_good_";
     let filename = entity.filename()?;
-    let tags = format!(",{},", entity.tags()?);
     Ok(tags.contains(",ew_no_enemy_sync,")
         || tags.contains(",polymorphed_player,")
         || tags.contains(",gold_nugget,")
@@ -133,7 +135,7 @@ fn entity_is_excluded(entity: EntityID) -> eyre::Result<bool> {
         || filename.starts_with(good)
         || tags.contains(",player_unit,")
         || filename == "data/entities/items/pickup/greed_curse.xml"
-        || (!tags.contains(",ew_sync_child,") && entity.root()? != Some(entity)))
+        || (!tags.contains(",ew_sync_child,") && !root.is_root()?))
 }
 
 impl EntitySync {
@@ -311,7 +313,10 @@ impl EntitySync {
         })
     }
     fn should_be_tracked(&mut self, entity: EntityID) -> eyre::Result<bool> {
+        // `tags()` and `root()` are Lua round-trips; fetch each at most once and share them with
+        // the predicates below, which would otherwise fetch them again.
         let tags = format!(",{},", entity.tags()?);
+        let mut root = RootCache::new(entity);
         let should_be_tracked = [
             ",enemy,",
             ",ew_synced,",
@@ -326,9 +331,9 @@ impl EntitySync {
         ]
         .iter()
         .any(|tag| tags.contains(tag))
-            || entity_is_item(entity)?;
+            || entity_is_item_cached(entity, &mut root)?;
 
-        Ok(should_be_tracked && !entity_is_excluded(entity)?)
+        Ok(should_be_tracked && !entity_is_excluded(entity, &tags, &mut root)?)
     }
 
     pub(crate) fn handle_proxytodes(

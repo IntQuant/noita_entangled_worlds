@@ -87,17 +87,19 @@ impl LocalDiffModel {
             .ok()
     }
     pub(crate) fn get_pos_data(&mut self, frame_num: usize) -> Vec<UpdateOrUpload> {
-        let len = self.entity_entries.len();
-        let batch_size = (len / 60).max(1);
-        //TODO since i do this in other places, i do more work at the start of the second then the end of the second as len is not equal to a multiple of 60 generally, so this should be spread out
-        let start = (frame_num % 60) * batch_size;
-        let end = (start + batch_size).min(len);
+        // Spread the entries over a 60-frame cycle: on frame `phase` we visit every entry whose
+        // position in the iteration order is congruent to `phase` mod 60. Compared to an
+        // index-window (`skip(start).take(batch_size)`) this covers 100% of the entries every 60
+        // frames (a window based on `len / 60` starves the last `len % 60` entries), spreads the
+        // work evenly across the cycle, and cannot underflow when `len < 60`.
+        let phase = frame_num % 60;
         let mut upload = std::mem::take(&mut self.upload);
         let mut res: Vec<UpdateOrUpload> = self
             .entity_entries
             .iter()
-            .skip(start)
-            .take(end - start)
+            .enumerate()
+            .filter(|(i, _)| i % 60 == phase)
+            .map(|(_, e)| e)
             .filter_map(|(lid, p)| {
                 let EntityEntryPair {
                     current: Some(current),
@@ -105,7 +107,9 @@ impl LocalDiffModel {
                     last,
                 } = p
                 else {
-                    unreachable!()
+                    // Not expected to happen, but this is an injected DLL: a panic here would
+                    // abort the game process, so skip the entry instead.
+                    return None;
                 };
                 if last.is_some() && !self.dont_save.contains(lid) {
                     Some(if upload.remove(lid) && !self.dont_upload.contains(lid) {
@@ -2674,11 +2678,44 @@ fn spawn_entity_by_data<'a>(
     }
 }
 
+/// Memoizes [`EntityID::root`] for a single entity.
+///
+/// `root()` is a full Lua round-trip into Noita, and several predicates that run back-to-back on
+/// the same entity each need it. Sharing one of these keeps it to at most one call, while still
+/// not making the call at all if nothing ends up asking for it.
+pub(crate) struct RootCache {
+    entity: EntityID,
+    root: Option<Option<EntityID>>,
+}
+
+impl RootCache {
+    pub(crate) fn new(entity: EntityID) -> Self {
+        Self { entity, root: None }
+    }
+    pub(crate) fn get(&mut self) -> eyre::Result<Option<EntityID>> {
+        if let Some(root) = self.root {
+            return Ok(root);
+        }
+        let root = self.entity.root()?;
+        self.root = Some(root);
+        Ok(root)
+    }
+    /// Equivalent to `entity.root()? == Some(entity)`.
+    pub(crate) fn is_root(&mut self) -> eyre::Result<bool> {
+        Ok(self.get()? == Some(self.entity))
+    }
+}
+
 pub(crate) fn entity_is_item(entity: EntityID) -> eyre::Result<bool> {
+    entity_is_item_cached(entity, &mut RootCache::new(entity))
+}
+
+/// [`entity_is_item`], but reusing an already-fetched root.
+pub(crate) fn entity_is_item_cached(entity: EntityID, root: &mut RootCache) -> eyre::Result<bool> {
     Ok(entity
         .try_get_first_component_including_disabled::<ItemComponent>(None)?
         .is_some()
-        && entity.root()? == Some(entity))
+        && root.is_root()?)
 }
 
 fn classify_entity(entity: EntityID) -> eyre::Result<EntityKind> {
