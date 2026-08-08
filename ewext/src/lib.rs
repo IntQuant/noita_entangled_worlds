@@ -2,12 +2,17 @@
 #[unsafe(no_mangle)]
 pub extern "C" fn _unwind_resume() {}
 
-use addr_grabber::{grab_addrs, grabbed_fns, grabbed_globals};
+use addr_grabber::grab_addrs;
+// Only `ephemerial` consumes these, and it is x86-only.
+#[cfg(target_arch = "x86")]
+use addr_grabber::{grabbed_fns, grabbed_globals};
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt, bail};
 use modules::{Module, ModuleCtx, entity_sync::EntitySync};
 use net::NetManager;
-use noita::{ParticleWorldState, ntypes::Entity, pixel::NoitaPixelRun};
+#[cfg(target_arch = "x86")]
+use noita::ntypes::Entity;
+use noita::{ParticleWorldState, decode::WorldFns, pixel::NoitaPixelRun};
 use noita_api::add_lua_fn;
 use noita_api::{
     DamageModelComponent, EntityID, VariableStorageComponent,
@@ -19,9 +24,10 @@ use noita_api::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use shared::des::{Gid, RemoteDes};
 use shared::{Destination, NoitaInbound, NoitaOutbound, PeerId, SpawnOnce, WorldPos};
+#[cfg(target_arch = "x86")]
+use std::arch::asm;
 use std::backtrace::Backtrace;
 use std::{
-    arch::asm,
     borrow::Cow,
     cell::{LazyCell, RefCell},
     ffi::{c_int, c_void},
@@ -104,6 +110,9 @@ struct Modules {
 #[derive(Default)]
 struct ExtState {
     particle_world_state: Option<ParticleWorldState>,
+    /// Set by `init_world_decode` once NoitaPatcher has resolved the world
+    /// functions. `None` means the Lua decode path is in use.
+    world_fns: Option<WorldFns>,
     modules: Modules,
     player_entity_map: BiHashMap<PeerId, EntityID>,
     fps_by_player: FxHashMap<PeerId, u8>,
@@ -141,6 +150,66 @@ fn init_particle_world_state(lua: LuaState) {
     });
 }
 
+/// Hand ewext the world functions NoitaPatcher already resolved, so the inbound
+/// decode can run natively instead of as a per-pixel Lua/FFI loop.
+///
+/// Args: get_cell, chunk_loaded, remove_cell, construct_cell (raw addresses
+/// from `noitapatcher.nsew.world_ffi`), then last_material_id.
+fn init_world_decode(lua: LuaState) -> eyre::Result<()> {
+    let get_cell = lua.to_integer(1) as *const c_void;
+    let chunk_loaded = lua.to_integer(2) as *const c_void;
+    let remove_cell = lua.to_integer(3) as *const c_void;
+    let construct_cell = lua.to_integer(4) as *const c_void;
+    let last_material_id = lua.to_integer(5) as i16;
+
+    // SAFETY: the Lua caller reads these straight out of world_ffi, which
+    // resolved them from the running process.
+    let fns = unsafe {
+        WorldFns::from_raw(
+            get_cell,
+            chunk_loaded,
+            remove_cell,
+            construct_cell,
+            last_material_id,
+        )
+    }?;
+    ExtState::with_global(|state| {
+        state.world_fns = Some(fns);
+    })?;
+    #[cfg(debug_assertions)]
+    println!("Native world decode initialized (last_material_id={last_material_id})");
+    Ok(())
+}
+
+/// Apply an encoded world area to the live grid. Returns the number of pixels
+/// actually written, so the Lua side can log/verify.
+///
+/// Args: address of the blob, length in bytes.
+fn decode_area(lua: LuaState) -> eyre::Result<()> {
+    let data_ptr = lua.to_integer(1) as *const u8;
+    let data_len = lua.to_integer(2) as usize;
+    if data_ptr.is_null() || data_len == 0 {
+        bail!("decode_area got an empty buffer");
+    }
+
+    ExtState::with_global(|state| {
+        let fns = state
+            .world_fns
+            .ok_or_eyre("Native world decode is not initialized")?;
+        let pws = state
+            .particle_world_state
+            .as_mut()
+            .ok_or_eyre("Particle world state is not initialized")?;
+        // SAFETY: the pointer comes from a Lua string that stays alive for the
+        // duration of this call, and data_len is that string's length.
+        let data = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
+        // SAFETY: called from the Lua world-update hook on the game's main
+        // thread, which is the only place world mutation is legal.
+        unsafe { pws.decode_area(data, &fns) }
+    })?
+    .map(|_| ())
+}
+
 fn encode_area(lua: LuaState) -> ValuesOnStack {
     let lua = lua.raw();
     let start_x = unsafe { LUA.lua_tointeger(lua, 1) } as i32;
@@ -158,10 +227,23 @@ fn encode_area(lua: LuaState) -> ValuesOnStack {
     ValuesOnStack(1)
 }
 
+/// Calls Noita's `EntityManager::get_entity` (a `__thiscall`) by hand and
+/// clears the entity's filename index, which makes the game treat it as
+/// ephemerial.
+///
+/// Only built for 32-bit x86 - the target Noita actually runs as. The asm below
+/// uses 32-bit forms that do not assemble for x86_64, so host builds (used for
+/// `cargo check`, clippy and unit tests) get a stub instead. Without this cfg
+/// the crate type-checks on the host but fails to codegen, which is why ewext's
+/// tests could not run there.
+#[cfg(target_arch = "x86")]
 pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
     unsafe {
         let entity_manager = grabbed_globals().entity_manager.read();
         let mut entity: *mut Entity;
+        // SAFETY: `get_entity` is Noita's own EntityManager::get_entity,
+        // resolved by addr_grabber. It is `__thiscall`: `this` in ecx, the
+        // argument pushed on the stack and popped by the callee, result in eax.
         asm!(
             "mov ecx, {entity_manager}",
             "push {entity_id:e}",
@@ -180,6 +262,12 @@ pub fn ephemerial(entity_id: u32) -> eyre::Result<()> {
     }
     Ok(())
 }
+
+#[cfg(not(target_arch = "x86"))]
+pub fn ephemerial(_entity_id: u32) -> eyre::Result<()> {
+    bail!("ephemerial is only implemented for 32-bit x86 (Noita's target)")
+}
+
 fn make_ephemerial(lua: LuaState) -> eyre::Result<()> {
     let entity_id = lua.to_integer(1) as u32;
     ephemerial(entity_id)?;
@@ -565,6 +653,8 @@ pub unsafe extern "C" fn luaopen_ewext(lua: *mut lua_State) -> c_int {
 
         add_lua_fn!(init_particle_world_state);
         add_lua_fn!(encode_area);
+        add_lua_fn!(init_world_decode);
+        add_lua_fn!(decode_area);
         add_lua_fn!(make_ephemerial);
         add_lua_fn!(on_world_initialized);
         add_lua_fn!(test_fn);

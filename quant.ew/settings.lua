@@ -292,6 +292,13 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
+                    id = "rust_world_decode",
+                    ui_name = "native world decode",
+                    ui_description = "decode incoming terrain in ewext instead of lua. much faster; turn off if terrain desyncs",
+                    value_default = true,
+                    scope = MOD_SETTING_SCOPE_RUNTIME,
+                },
+                {
                     id = "cache",
                     ui_name = "bypass entity cache",
                     ui_description = "re-read entity data from the game every frame instead of caching it. slower; only for debugging desyncs",

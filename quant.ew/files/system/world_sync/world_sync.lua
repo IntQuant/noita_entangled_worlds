@@ -10,6 +10,16 @@ local encoded_area = world.EncodedArea()
 
 local world_sync = {}
 
+-- The inbound decode used to be a per-pixel Lua/FFI loop (world.decode), which
+-- is the most expensive thing on the receive path. The native implementation
+-- calls the same NoitaPatcher-resolved game functions; this setting exists so
+-- it can be turned off without shipping a new build if it misbehaves.
+local use_rust_decode = ModSettingGet("quant.ew.rust_world_decode")
+if use_rust_decode == nil then
+    use_rust_decode = true
+end
+local rust_decode_ready = false
+
 local KEY_WORLD_FRAME = 0
 local KEY_WORLD_END = 1
 
@@ -48,6 +58,30 @@ function world_sync.on_world_initialized()
     c = c - 1
     print("Last material id: " .. c)
     world.last_material_id = c
+
+    -- Hand the world functions NoitaPatcher resolved to ewext, so the inbound
+    -- decode can run natively. If anything here fails we simply keep using the
+    -- Lua decode below.
+    if use_rust_decode then
+        local ok, err = pcall(function()
+            ewext.init_world_decode(
+                tonumber(ffi.cast("intptr_t", world_ffi.get_cell)),
+                tonumber(ffi.cast("intptr_t", world_ffi.chunk_loaded)),
+                tonumber(ffi.cast("intptr_t", world_ffi.remove_cell)),
+                tonumber(ffi.cast("intptr_t", world_ffi.construct_cell)),
+                c
+            )
+        end)
+        if ok then
+            rust_decode_ready = true
+            print("World decode: native")
+        else
+            rust_decode_ready = false
+            print("World decode: falling back to Lua (" .. tostring(err) .. ")")
+        end
+    else
+        print("World decode: Lua (disabled by setting)")
+    end
     -- do_benchmark()
 end
 
@@ -213,6 +247,18 @@ end
 local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 function world_sync.handle_world_data(datum)
+    if rust_decode_ready then
+        -- `datum` is a Lua string and stays alive across this call, so passing
+        -- its address is safe. On any error, drop back to the Lua path for the
+        -- rest of the session rather than losing world updates.
+        local ptr = tonumber(ffi.cast("intptr_t", ffi.cast("const char*", datum)))
+        local ok, err = pcall(ewext.decode_area, ptr, #datum)
+        if ok then
+            return
+        end
+        rust_decode_ready = false
+        print("Native world decode failed, reverting to Lua: " .. tostring(err))
+    end
     local grid_world = world_ffi.get_grid_world()
     local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast("char const*", datum))
     local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
