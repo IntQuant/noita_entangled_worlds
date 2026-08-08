@@ -31,3 +31,6 @@ jobs:
       - name: Ask clippy for approval (proxy)
         run: cargo clippy -- -D clippy::all
         working-directory: ./noita_proxy
+      - name: Run tests (proxy)
+        run: cargo test -p noita_proxy
+        working-directory: ./noita_proxy

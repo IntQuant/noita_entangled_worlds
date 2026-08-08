@@ -240,6 +240,7 @@ mod test {
     use crate::releases::{Tag, get_release_by_tag};
 
     #[test]
+    #[ignore = "hits the live GitHub API"]
     fn release_assets() {
         let client = reqwest::blocking::Client::new();
         // let release = get_latest_release(&client).unwrap();
