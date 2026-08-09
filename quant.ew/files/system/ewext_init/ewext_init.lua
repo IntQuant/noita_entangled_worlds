@@ -9,7 +9,7 @@ local module = {}
 
 local log = false
 
-local cache = false
+local bypass_cache = false
 
 -- Used in ewext
 EwextSerialize = util.serialize_entity
@@ -35,8 +35,8 @@ function module.on_world_initialized()
     ewext.module_on_world_init()
     log = ModSettingGet("quant.ew.log_performance") or false
     ewext.set_log(log)
-    cache = ModSettingGet("quant.ew.cache") or false
-    ewext.set_cache(cache)
+    bypass_cache = ModSettingGet("quant.ew.cache") or false
+    ewext.set_bypass_cache(bypass_cache)
 end
 
 local function oh_another_world_state(entity)
@@ -94,9 +94,9 @@ function module.on_world_update()
         ewext.set_log(log)
     end
     local temp = ModSettingGet("quant.ew.cache") or false
-    if temp ~= cache then
-        cache = temp
-        ewext.set_cache(cache)
+    if temp ~= bypass_cache then
+        bypass_cache = temp
+        ewext.set_bypass_cache(bypass_cache)
     end
     if GameGetWorldStateEntity() ~= initial_world_state_entity then
         oh_another_world_state(GameGetWorldStateEntity())
