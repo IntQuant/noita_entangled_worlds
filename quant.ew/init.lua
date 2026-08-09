@@ -245,9 +245,9 @@ function OnProjectileFired(
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     end
-    shooter_player_data.projectile_seed_chain[shooter_id - 1] = rng
-    shooter_player_data.projectile_seed_chain[entity_that_shot] = rng
-    shooter_player_data.projectile_seed_chain[projectile_id] = rng
+    player_fns.set_projectile_seed(shooter_player_data, shooter_id - 1, rng)
+    player_fns.set_projectile_seed(shooter_player_data, entity_that_shot, rng)
+    player_fns.set_projectile_seed(shooter_player_data, projectile_id, rng)
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
         local src = ComponentGetValue2(lua, "script_source_file")
         if

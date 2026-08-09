@@ -377,7 +377,11 @@ local player_fns = {
             name = "[Peer " .. peer_id .. "]",
             controls = {},
             projectile_rng_init = {},
-            projectile_seed_chain = {}, -- TODO clean
+            projectile_seed_chain = {},
+            -- Insertion-order ring used to bound projectile_seed_chain; see
+            -- player_fns.set_projectile_seed.
+            projectile_seed_order = {},
+            projectile_seed_tail = 1,
             currently_polymorphed = false,
             mouse_x = 0,
             pos_x = 0,
@@ -390,6 +394,33 @@ local player_fns = {
         }
     end,
 }
+
+-- projectile_seed_chain is keyed by entity id, and Noita never reuses entity
+-- ids, so writing to it unconditionally leaked ~3 entries per projectile fired
+-- for the whole session (unbounded memory, growing GC cost, and a rehash pause
+-- at every doubling). Only the recently-fired projectiles are ever read back,
+-- so bound it with an insertion-order ring and evict the oldest.
+local SEED_CHAIN_MAX = 4096
+
+function player_fns.set_projectile_seed(player_data, key, rng)
+    local chain = player_data.projectile_seed_chain
+    if chain[key] == nil then
+        local order = player_data.projectile_seed_order
+        local tail = player_data.projectile_seed_tail
+        if order == nil then
+            order = {}
+            tail = 1
+            player_data.projectile_seed_order = order
+        end
+        local evicted = order[tail]
+        if evicted ~= nil then
+            chain[evicted] = nil
+        end
+        order[tail] = key
+        player_data.projectile_seed_tail = (tail % SEED_CHAIN_MAX) + 1
+    end
+    chain[key] = rng
+end
 
 function player_fns.serialize_position(player_data)
     local entity = player_data.entity
