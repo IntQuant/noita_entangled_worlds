@@ -1391,21 +1391,30 @@ impl EntityManager {
             self.current_entity = ent;
             return Ok(());
         }
-        if self.current_entity == ent {
+        // `has_ran` matters here: after `remove_current`, `current_entity` still
+        // names the dropped entity, so an early return would keep serving its
+        // stale `current_data`.
+        if self.current_entity == ent && self.has_ran {
             return Ok(());
         }
         if self.has_ran {
-            let old_ent = std::mem::replace(&mut self.current_entity, ent);
+            // Build the new data *before* touching any field. On failure the
+            // manager must stay consistent - a half-applied switch leaves
+            // `current_entity` pointing at `ent` while `current_data` still
+            // describes the old one, and the next switch caches that mismatch
+            // under `ent` for good.
             let data = if let Some(data) = self.cache.remove(&ent) {
                 data
             } else {
                 EntityData::new(ent)?
             };
+            let old_ent = std::mem::replace(&mut self.current_entity, ent);
             let old_data = std::mem::replace(&mut self.current_data, data);
             self.cache.insert(old_ent, old_data);
         } else {
+            let data = EntityData::new(ent)?;
             self.current_entity = ent;
-            self.current_data = EntityData::new(ent)?;
+            self.current_data = data;
             self.has_ran = true;
         }
         Ok(())
