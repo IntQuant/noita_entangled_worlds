@@ -83,14 +83,24 @@ impl EntityID {
                             if let Ok(data) =
                                 base64::engine::general_purpose::STANDARD.decode(data.as_bytes())
                             {
-                                let data = unsafe { str::from_utf8_unchecked(&data) };
-                                if let Some((_, data)) = data.split_once("ew_gid_lid") {
+                                // mSerializedData is an arbitrary binary blob, so
+                                // it is not necessarily valid UTF-8 - building a
+                                // &str from it was UB, and iterating .chars()
+                                // over it could read past the end of the slice on
+                                // a truncated multi-byte sequence. The marker and
+                                // the digits are both ASCII, so scan the bytes.
+                                const MARKER: &[u8] = b"ew_gid_lid";
+                                if let Some(start) = data
+                                    .windows(MARKER.len())
+                                    .position(|w| w == MARKER)
+                                    .map(|i| i + MARKER.len())
+                                {
                                     let mut gid = String::new();
                                     let mut found = false;
-                                    for c in data.chars() {
-                                        if c.is_numeric() {
+                                    for &c in &data[start..] {
+                                        if c.is_ascii_digit() {
                                             found = true;
-                                            gid.push(c)
+                                            gid.push(char::from(c))
                                         } else if found {
                                             break;
                                         }
