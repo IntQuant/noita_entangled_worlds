@@ -41,6 +41,10 @@ pub struct MessageSocket<Inbound, Outbound> {
 impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbound, Outbound> {
     pub fn new(socket: TcpStream) -> eyre::Result<Self> {
         socket.set_write_timeout(Some(Duration::from_secs(10)))?;
+        // The proxy sets this on its accepted sockets, but the ewext side (which
+        // connects) never did - leaving Nagle enabled on the game -> proxy
+        // direction, which is the one on the frame-critical path.
+        socket.set_nodelay(true)?;
         let (sender, recv_messages) = mpsc::channel();
         let reader_thread = Some(thread::spawn({
             let socket = socket.try_clone()?;
@@ -60,7 +64,10 @@ impl<Inbound: DecodeOwned + Send + 'static, Outbound: Encode> MessageSocket<Inbo
         }));
 
         Ok(Self {
-            socket: BufWriter::new(socket),
+            // A single world-sync chunk can reach ~82 KB; with the default 8 KB
+            // BufWriter capacity every such message went straight to the kernel
+            // and could block the game thread. Size the buffer past that.
+            socket: BufWriter::with_capacity(256 * 1024, socket),
             recv_messages,
             reader_thread,
             _phantom: PhantomData,
