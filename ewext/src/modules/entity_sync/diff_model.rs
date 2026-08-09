@@ -874,6 +874,15 @@ impl LocalDiffModel {
             handle.get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
         }
 
+        // Ahead of serialization, because ew_gid_lid's bool means "this peer owns
+        // it". An entity being re-tracked still carries the one from last time -
+        // temporary_untrack_item leaves it in place - so serializing first put an
+        // owner flag in the blob every peer spawns from, and left them relying on
+        // init_remote_entity to strip it again.
+        if let Some(lua) = handle.get_var(const { VarName::from_str("ew_gid_lid") }) {
+            handle.remove_component(lua)?;
+        }
+
         let entity_kind = classify_entity(entity)?;
         let spawn_info = match entity_kind {
             EntityKind::Normal if should_not_serialize => {
@@ -889,9 +898,6 @@ impl LocalDiffModel {
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
         })?;
-        if let Some(lua) = handle.get_var(const { VarName::from_str("ew_gid_lid") }) {
-            handle.remove_component(lua)?;
-        }
         let var = handle.add_component_with_var_name(const { VarName::from_str("ew_gid_lid") })?;
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
@@ -1686,9 +1692,11 @@ impl RemoteDiffModel {
         sprite_animations: &mut SpriteAnimations,
     ) -> eyre::Result<Option<Lid>> {
         let entity = handle.entity();
-        if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)?
-            || item_in_entity_inventory(entity)?
-        {
+        // Both halves are about items, but `&&` binds tighter than `||`, so the
+        // container check used to run for every remote entity of any kind.
+        let taken_over = entity_info.kind == EntityKind::Item
+            && (item_in_my_inventory(entity)? || item_in_entity_inventory(entity)?);
+        if taken_over {
             handle.remove_tag(const { CachedTag::from_tag(DES_TAG) })?;
             with_entity_scripts(handle, |luac| {
                 luac.set_script_throw_item(
@@ -2547,11 +2555,25 @@ fn item_in_my_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
         .unwrap_or(false))
 }
 
+/// Whether the entity sits inside a container this peer owns, and so should be
+/// taken over along with it. `ew_gid_lid`'s bool marks a locally tracked entity.
 fn item_in_entity_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
-    Ok(entity
-        .root()?
-        .and_then(|e| e.get_var("ew_gid_lid").unwrap().value_bool().ok())
-        .unwrap_or(false))
+    let Some(root) = entity.root()? else {
+        return Ok(false);
+    };
+    // A loose item is its own root. Without this it degenerates into "does this
+    // entity believe it is locally owned", which on a remote copy is only ever
+    // true because a stale owner flag survived the spawn - and acting on it
+    // takes a just-dropped item away from the peer that actually owns it.
+    if root == entity {
+        return Ok(false);
+    }
+    // Not every root carries the var - remote player representations never do -
+    // and unwrapping it here aborted the process.
+    let Some(var) = root.get_var("ew_gid_lid") else {
+        return Ok(false);
+    };
+    Ok(var.value_bool().unwrap_or(false))
 }
 
 fn not_in_player_inventory(entity: EntityID) -> Result<bool, eyre::Error> {
