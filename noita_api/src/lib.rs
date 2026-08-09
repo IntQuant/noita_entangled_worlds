@@ -1423,12 +1423,19 @@ impl EntityManager {
     pub fn entity(&self) -> EntityID {
         self.current_entity
     }
+    /// Drops the snapshot for the current entity.
+    ///
+    /// `current_entity` deliberately keeps naming it - callers still want
+    /// `entity()` afterwards - so the snapshot has to be emptied rather than
+    /// just marked invalid. No accessor consults `has_ran`, and every one of
+    /// them would otherwise keep answering from a dead entity's components.
     pub fn remove_current(&mut self) {
         self.has_ran = false;
+        self.current_data = EntityData::default();
     }
     pub fn remove_ent(&mut self, ent: &EntityID) {
         if &self.current_entity == ent || self.bypass_cache {
-            self.has_ran = false;
+            self.remove_current();
         } else {
             self.cache.remove(ent);
         }
@@ -1564,20 +1571,29 @@ impl EntityManager {
                 },
             );
         }
+        let idx = const { CachedComponent::from_component::<C>() as usize };
         let mut is_some = false;
-        let vec = std::mem::take(
-            &mut self.current_data.components[const { CachedComponent::from_component::<C>() as usize }],
-        );
+        let mut err = None;
+        let vec = std::mem::take(&mut self.current_data.components[idx]);
         for com in vec.into_iter() {
-            if tags == ComponentTag::None || com.tags.get(tags as u16) {
-                is_some = true;
-                self.current_entity.remove_component(com.id)?;
-            } else {
-                self.current_data.components
-                    [const { CachedComponent::from_component::<C>() as usize }].push(com);
+            // Once a removal has failed, stop removing but keep every entry:
+            // the components are still on the entity, and dropping them from
+            // the snapshot only makes the cache lie about a smaller entity.
+            if err.is_none() && (tags == ComponentTag::None || com.tags.get(tags as u16)) {
+                match self.current_entity.remove_component(com.id) {
+                    Ok(()) => {
+                        is_some = true;
+                        continue;
+                    }
+                    Err(e) => err = Some(e),
+                }
             }
+            self.current_data.components[idx].push(com);
         }
-        Ok(is_some)
+        match err {
+            Some(e) => Err(e),
+            None => Ok(is_some),
+        }
     }
     pub fn iter_all_components_of_type<C: Component>(
         &self,
@@ -1727,6 +1743,31 @@ impl EntityManager {
             .push(ComponentData::new(*c, false));
         Ok(c)
     }
+    /// Tags a component of the current entity, keeping the snapshot in step.
+    ///
+    /// Tagging through the raw `ComponentID` instead leaves the snapshot's tag
+    /// bitset as it was when the component was added - empty, for one added
+    /// through this manager - so lookups by that tag never find it again and
+    /// callers that add-if-missing add forever.
+    pub fn add_component_tag<C: Component>(
+        &mut self,
+        com: C,
+        tag: ComponentTag,
+    ) -> eyre::Result<()> {
+        com.add_tag(tag.to_str())?;
+        if self.bypass_cache {
+            return Ok(());
+        }
+        let id = *com;
+        if let Some(c) = self.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter_mut()
+        .find(|c| c.id == id)
+        {
+            c.tags.set(tag as u16);
+        }
+        Ok(())
+    }
     pub fn set_components_with_tag_enabled(
         &mut self,
         tag: ComponentTag,
@@ -1737,18 +1778,17 @@ impl EntityManager {
                 .entity()
                 .set_components_with_tag_enabled(tag.to_str().into(), enabled);
         }
-        let mut some = false;
         for c in self.current_data.components.iter_mut().flatten() {
             if c.tags.get(tag as u16) {
-                some = true;
                 c.enabled = enabled
             }
         }
-        if some {
-            self.current_entity
-                .set_components_with_tag_enabled(tag.to_str().into(), enabled)?
-        }
-        Ok(())
+        // Unconditionally, not just when the snapshot knew about a tagged
+        // component. Only 32 component types are cached at all, so "the
+        // snapshot has none" is the normal case for most tags, and gating on it
+        // turned this into a silent no-op that still returned Ok.
+        self.current_entity
+            .set_components_with_tag_enabled(tag.to_str().into(), enabled)
     }
     pub fn set_component_enabled<C: Component>(
         &mut self,

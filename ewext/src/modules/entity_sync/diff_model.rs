@@ -2532,7 +2532,8 @@ fn with_entity_scripts<T>(
         c
     } else {
         let component = entity.add_component::<LuaComponent>()?;
-        component.add_tag(DES_SCRIPTS_TAG)?;
+        // Through the manager, so the lookup above can find it next time.
+        entity.add_component_tag(component, const { ComponentTag::from_str(DES_SCRIPTS_TAG) })?;
         component.add_tag("enabled_in_inventory")?;
         component.add_tag("enabled_in_world")?;
         component.add_tag("enabled_in_hand")?;
