@@ -826,8 +826,6 @@ impl LocalDiffModel {
             ghost.set_target_tag("".into())?;
         }
 
-        self.tracker.tracked.insert(lid, entity);
-
         let (x, y) = entity.position()?;
 
         if entity_manager.has_tag(const { CachedTag::from_tag("card_action") })
@@ -889,10 +887,6 @@ impl LocalDiffModel {
                 .try_get_first_component::<StreamingKeepAliveComponent>(ComponentTag::None)
                 .is_some();
 
-        if is_global {
-            self.tracker.global_entities.insert(entity);
-        }
-
         let drops_gold = (entity_manager
             .iter_all_components_of_type::<LuaComponent>(ComponentTag::None)
             .any(|lua| {
@@ -913,6 +907,15 @@ impl LocalDiffModel {
                 .map(|v| v.value_int().ok() != Some(-1))
                 .unwrap_or(false);
 
+        // Registration is committed only here, once everything fallible above
+        // has succeeded. The maps have to agree: a lid in `tracked` but not in
+        // `entity_entries` is an entity this peer owns, tagged and given an
+        // `ew_gid_lid` so other peers defer to it, that `update_tracked_entities`
+        // never walks and so never syncs again.
+        self.tracker.tracked.insert(lid, entity);
+        if is_global {
+            self.tracker.global_entities.insert(entity);
+        }
         self.entity_entries.insert(
             lid,
             EntityEntryPair {
