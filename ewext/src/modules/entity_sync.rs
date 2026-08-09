@@ -159,7 +159,7 @@ impl EntitySync {
         } else {
             Ok(())
         };
-        if !self.local_diff_model.update_buffer.is_empty() {
+        let err2 = if !self.local_diff_model.update_buffer.is_empty() {
             let res = std::mem::take(&mut self.local_diff_model.update_buffer);
             let (RemoteDes::EntityUpdate(diff), err) = send_remotedes_ret(
                 ctx,
@@ -175,9 +175,15 @@ impl EntitySync {
                 unreachable!()
             };
             self.local_diff_model.update_buffer = diff;
-            err1?;
-            err?;
-        }
+            err
+        } else {
+            Ok(())
+        };
+        // Both sends have to be attempted before either error escapes - each one
+        // puts back the buffer it took, so bailing out early would drop the
+        // other buffer's diffs on the floor.
+        err1?;
+        err2?;
         Ok(())
     }
     pub(crate) fn spawn_once(
@@ -675,7 +681,9 @@ impl Module for EntitySync {
             {
                 Ok(ret) => ret,
                 Err(s) => {
-                    self.clear_buffer(ctx, &new_intersects)?;
+                    // Flushing is best effort here - a send failure must not
+                    // displace s, which is the error that explains the frame.
+                    let _ = self.clear_buffer(ctx, &new_intersects);
                     return Err(s);
                 }
             };
