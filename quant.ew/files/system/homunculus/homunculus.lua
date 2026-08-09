@@ -1,5 +1,48 @@
 local rpc = net.new_rpc_namespace()
 local homunculus = {}
+
+-- EntityGetWithTag("lukki") is an engine-wide scan. It used to run once per
+-- frame per player, including for players who never took the perk. Lukki perk
+-- entities are created/destroyed rarely, so the owning scan is cached per
+-- player entity and refreshed periodically; positions are still read every
+-- frame off the cached list.
+local LUKKI_RESCAN_INTERVAL = 20
+local lukki_cache = {}
+
+local function get_lukki(entity)
+    local frame = GameGetFrameNum()
+    local cached = lukki_cache[entity]
+    if cached == nil or frame - cached.frame >= LUKKI_RESCAN_INTERVAL then
+        -- Drop entries for players that no longer exist so this can't grow.
+        for ent, _ in pairs(lukki_cache) do
+            if not EntityGetIsAlive(ent) then
+                lukki_cache[ent] = nil
+            end
+        end
+        local found = {}
+        for _, child in ipairs(EntityGetWithTag("lukki") or {}) do
+            if EntityHasTag(child, "perk_entity") then
+                -- EntityGetComponent returns nil (not an empty table) when the
+                -- entity has no such component.
+                local comps = EntityGetComponent(child, "VariableStorageComponent")
+                local var = comps ~= nil and comps[2] or nil
+                if var ~= nil and ComponentGetValue2(var, "value_int") == entity then
+                    table.insert(found, child)
+                end
+            end
+        end
+        cached = { frame = frame, list = found }
+        lukki_cache[entity] = cached
+    end
+    local alive = {}
+    for _, child in ipairs(cached.list) do
+        if EntityGetIsAlive(child) then
+            table.insert(alive, child)
+        end
+    end
+    return alive
+end
+
 local function get_entities(entity)
     local homunculy = {}
     local ghost = {}
@@ -15,18 +58,7 @@ local function get_entities(entity)
             table.insert(ghost, child)
         end
     end
-    local luuki = {}
-    for _, child in ipairs(EntityGetWithTag("lukki") or {}) do
-        if EntityHasTag(child, "perk_entity") then
-            local var = EntityGetComponent(child, "VariableStorageComponent")[2]
-            if var ~= nil then
-                if ComponentGetValue2(var, "value_int") == entity then
-                    table.insert(luuki, child)
-                end
-            end
-        end
-    end
-    return homunculy, luuki, ghost
+    return homunculy, get_lukki(entity), ghost
 end
 rpc.opts_reliable()
 function rpc.send_positions(ho, lu, gh, f)
