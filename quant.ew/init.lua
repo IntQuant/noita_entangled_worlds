@@ -35,7 +35,7 @@ dofile_once("data/scripts/lib/coroutines.lua")
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/quant.ew/files/resource/append/gun.lua")
 ModLuaFileAppend("data/scripts/gun/gun_actions.lua", "mods/quant.ew/files/resource/append/action_fix.lua")
 
-if ModSettingGet("quant.ew.enable_log") or true then
+if ModSettingGet("quant.ew.enable_log") then
     ModMagicNumbersFileAdd("mods/quant.ew/files/magic_numbers.xml")
 else
     ModMagicNumbersFileAdd("mods/quant.ew/files/magic.xml")
