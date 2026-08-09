@@ -626,14 +626,22 @@ impl Module for EntitySync {
             )?;
         }
 
+        // Every peer in the batch has to be attempted even if the socket refuses one
+        // of them - it has a write timeout, and this is said only once per peer that
+        // drops out of range, so a peer that never hears it goes on holding the
+        // entities we spawned on its side for good.
+        let mut errors = crate::ErrorBatch::default();
         for lost in self.interest_tracker.drain_lost_interest() {
-            send_remotedes(
+            if let Err(err) = send_remotedes(
                 ctx.net,
                 true,
                 Destination::Peer(lost),
                 RemoteDes::ExitedInterest,
-            )?;
+            ) {
+                errors.push(err);
+            }
         }
+        errors.finish()?;
 
         self.look_current_entity = EntityID::max_in_use()?;
         self.local_diff_model
@@ -757,11 +765,20 @@ impl Module for EntitySync {
                     self.peer_order.insert(0, *peer);
                 }
             }
+            // Held across the whole peer loop: a grab request is only queued once,
+            // so a socket that refuses one must not cost us the requests behind it,
+            // and it must not cost the peers after this one their apply_entities
+            // either.
+            let mut errors = crate::ErrorBatch::default();
             for (i, owner) in self.peer_order.iter().enumerate() {
                 match self.remote_models.get_mut(owner) {
                     Some(remote_model) => {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
-                        let v = remote_model
+                        // Stops applying entities for this frame as it always has,
+                        // but by way of the batch, so that a send error an earlier
+                        // peer collected is still the one returned to the caller
+                        // rather than only being printed on the way out.
+                        let v = match remote_model
                             .apply_entities(
                                 ctx,
                                 *vi,
@@ -769,18 +786,27 @@ impl Module for EntitySync {
                                 &mut self.entity_manager,
                                 &mut self.sprite_animations,
                             )
-                            .wrap_err("Failed to apply entity infos")?;
+                            .wrap_err("Failed to apply entity infos")
+                        {
+                            Ok(v) => v,
+                            Err(err) => {
+                                errors.push(err);
+                                break;
+                            }
+                        };
                         self.remote_index.insert(*owner, v);
                         if self.log_performance {
                             times.push(start.elapsed().as_micros() - times.iter().sum::<u128>());
                         }
                         for lid in remote_model.drain_grab_request() {
-                            send_remotedes(
+                            if let Err(err) = send_remotedes(
                                 ctx.net,
                                 true,
                                 Destination::Peer(*owner),
                                 RemoteDes::RequestGrab(lid),
-                            )?;
+                            ) {
+                                errors.push(err);
+                            }
                         }
                     }
                     None => {
@@ -795,13 +821,27 @@ impl Module for EntitySync {
                 let p = self.peer_order.remove(0);
                 self.peer_order.push(p)
             }
+            errors.finish()?;
         }
         // These entities shouldn't be tracked by us, as they were spawned by remote.
         self.look_current_entity = EntityID::max_in_use()?;
+        // One batch for every kill this frame, remote peers first. A peer whose
+        // kills fail is no reason for the peers behind it to go a frame without
+        // theirs, and kill_entities has already emptied its own queues by the time
+        // it reports, so there is nothing to gain by stopping here either.
+        let mut kill_errors = crate::ErrorBatch::default();
         for remote_model in self.remote_models.values_mut() {
-            remote_model.kill_entities(ctx, &mut self.entity_manager)?;
+            if let Err(err) = remote_model.kill_entities(ctx, &mut self.entity_manager) {
+                kill_errors.push(err);
+            }
         }
-        for (entity, offending_peer) in self.kill_later.drain(..) {
+        // Taken rather than drained in place, as a drain that is abandoned part way
+        // through throws away every kill it hasn't reached yet, and these are only
+        // queued once. A kill the game refuses is dropped rather than requeued -
+        // nothing here would make the next attempt go differently, and the usual
+        // reason is an entity that is already gone.
+        let kill_later = std::mem::take(&mut self.kill_later);
+        let kill = |entity: EntityID, offending_peer: Option<PeerId>| -> eyre::Result<()> {
             if entity.is_alive() {
                 let responsible_entity = offending_peer
                     .and_then(|peer| ctx.player_map.get_by_left(&peer))
@@ -818,7 +858,14 @@ impl Module for EntitySync {
                     )?;
                 }
             }
+            Ok(())
+        };
+        for (entity, offending_peer) in kill_later {
+            if let Err(err) = kill(entity, offending_peer) {
+                kill_errors.push(err);
+            }
         }
+        kill_errors.finish()?;
         if let Err(s) = self.spawn_once(ctx, frame_num as usize, x, y) {
             crate::print_error(s)?;
         }

@@ -452,6 +452,81 @@ pub(crate) fn print_error(error: eyre::Report) -> eyre::Result<()> {
     Ok(())
 }
 
+/// How many of a batch's later errors are worth printing in full.
+///
+/// Each one costs a `Backtrace::force_capture` and an `EwextPrintError`, which
+/// writes every line of it to both the screen and the logfile. A queue that
+/// fails systematically can be thousands of items long, and release builds are
+/// stripped, so past the first few the backtraces are `<unknown>` frames that
+/// cost a frame's worth of printing and say nothing.
+const ERRORS_PRINTED_PER_BATCH: usize = 3;
+
+/// Collects the errors of a batch that keeps going after a failure.
+///
+/// The first error is handed back to the caller as usual. Only one can be
+/// returned, so the next few are printed as they happen and the rest are counted
+/// and summarised by [`ErrorBatch::finish`] - none of them go missing, but a
+/// batch that fails on every item cannot flood the print queue either.
+#[derive(Default)]
+pub(crate) struct ErrorBatch {
+    first: Option<eyre::Report>,
+    printed: usize,
+    suppressed: usize,
+}
+
+impl ErrorBatch {
+    pub(crate) fn push(&mut self, error: eyre::Report) {
+        if self.first.is_none() {
+            self.first = Some(error);
+        } else if self.printed < ERRORS_PRINTED_PER_BATCH {
+            // A print that fails has consumed the error and may not have shown any
+            // of it, so it counts as suppressed rather than against the budget.
+            if print_error(error).is_ok() {
+                self.printed += 1;
+            } else {
+                self.suppressed += 1;
+            }
+        } else {
+            self.suppressed += 1;
+        }
+    }
+
+    pub(crate) fn finish(mut self) -> eyre::Result<()> {
+        self.report_suppressed();
+        match self.first.take() {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
+    }
+
+    fn report_suppressed(&mut self) {
+        if self.suppressed != 0 {
+            let msg = format!(
+                "ewext: {} more errors suppressed in one batch",
+                self.suppressed
+            );
+            noita_api::game_print(&msg);
+            noita_api::print(&msg);
+            self.suppressed = 0;
+        }
+    }
+}
+
+impl Drop for ErrorBatch {
+    /// Reports whatever `finish` never got to see.
+    ///
+    /// A batch is only useful if every path out of the loop it guards ends at
+    /// `finish`, and an early return jumping over it is exactly the kind of
+    /// silently discarded error this type exists to stop. After `finish` there is
+    /// nothing left to report and this does nothing.
+    fn drop(&mut self) {
+        if let Some(error) = self.first.take() {
+            let _ = print_error(error);
+        }
+        self.report_suppressed();
+    }
+}
+
 /// # Safety
 ///
 /// Only gets called by lua when loading a module.

@@ -222,10 +222,18 @@ impl RemoteDiffModel {
             .copied()
     }
     pub(crate) fn remove_entities(self, entity_manager: &mut EntityManager) -> eyre::Result<()> {
+        // The callers have already taken the model out of remote_models and this
+        // consumes it, so this is the last time anything knows these entities exist
+        // - stopping at the first bad one would leave the rest of that peer's
+        // entities alive and untracked forever.
+        let mut errors = crate::ErrorBatch::default();
         for (_, ent) in self.tracked.into_iter() {
-            safe_entitykill(entity_manager.handle(ent)?);
+            match entity_manager.handle(ent) {
+                Ok(handle) => safe_entitykill(handle),
+                Err(err) => errors.push(err),
+            }
         }
-        Ok(())
+        errors.finish()
     }
 }
 
@@ -994,7 +1002,16 @@ impl LocalDiffModel {
     }
 
     pub(crate) fn phys_later(&mut self, entity_manager: &mut EntityManager) -> eyre::Result<()> {
-        for (entity, phys) in self.phys_later.drain(..) {
+        // The queue is taken rather than drained in place, because a drain that is
+        // abandoned part way through discards every entity it hasn't reached yet.
+        // The entity that failed is not put back: there is no retry budget here, and
+        // nothing to tell a refusal that would clear itself apart from one that
+        // never will, so it is reported instead. Note that an entity whose physics
+        // has not come up yet is already dropped the same way, despite the name of
+        // the queue.
+        let queued = std::mem::take(&mut self.phys_later);
+        let mut errors = crate::ErrorBatch::default();
+        let mut apply = |entity: EntityID, phys: Vec<Option<PhysBodyInfo>>| -> eyre::Result<()> {
             let mut handle = entity_manager.handle(entity)?;
             if entity.is_alive() && handle.check_all_phys_init()? {
                 let phys_bodies = entity.get_physics_body_ids().unwrap_or_default();
@@ -1014,12 +1031,22 @@ impl LocalDiffModel {
                     )?;
                 }
             }
+            Ok(())
+        };
+        for (entity, phys) in queued {
+            if let Err(err) = apply(entity, phys) {
+                errors.push(err);
+            }
         }
-        Ok(())
+        errors.finish()
     }
 
     pub(crate) fn enable_later(&mut self, entity_manager: &mut EntityManager) -> eyre::Result<()> {
-        for entity in self.enable_later.drain(..) {
+        // Taken rather than drained in place for the same reason as phys_later - one
+        // entity the game refuses must not cost us the rest of the queue.
+        let queued = std::mem::take(&mut self.enable_later);
+        let mut errors = crate::ErrorBatch::default();
+        let mut enable = |entity: EntityID| -> eyre::Result<()> {
             if entity.is_alive() {
                 let mut handle = entity_manager.handle(entity)?;
                 handle.set_components_with_tag_enabled(
@@ -1035,8 +1062,14 @@ impl LocalDiffModel {
                     .for_each(|ent| ent.kill());
                 entity.set_static(false)?
             }
+            Ok(())
+        };
+        for entity in queued {
+            if let Err(err) = enable(entity) {
+                errors.push(err);
+            }
         }
-        Ok(())
+        errors.finish()
     }
 
     pub(crate) fn update_pending_authority(
@@ -1183,9 +1216,19 @@ impl LocalDiffModel {
             self.dont_save.remove(&lid);
             entity_manager.remove_ent(&killed);
         }
+        // Every one of these has already been pulled out of tracked and
+        // entity_entries above, so a lid we skip here is one the proxy is never told
+        // about: it keeps the gid in entity_storage and hands authority for it back
+        // out later, which is how a killed enemy comes back to life. Sending is the
+        // failure that actually happens - the socket has a write timeout - so the
+        // rest of the batch has to go out even when one send does not.
+        let mut errors = crate::ErrorBatch::default();
         for (gid, lid) in to_untrack {
-            self.tracker.untrack_entity(ctx, gid, lid, None)?
+            if let Err(err) = self.tracker.untrack_entity(ctx, gid, lid, None) {
+                errors.push(err);
+            }
         }
+        errors.finish()?;
         let mut should_transfer = false;
         if let Some(pe) = ctx.player_map.get_by_left(&my_peer_id()) {
             let (px, py) = pe.position()?;
@@ -2097,65 +2140,94 @@ impl RemoteDiffModel {
         ctx: &mut ModuleCtx,
         entity_manager: &mut EntityManager,
     ) -> eyre::Result<()> {
-        for (lid, wait_on_kill, responsible) in self.pending_death_notify.drain(..) {
-            let responsible_entity = responsible
-                .and_then(|peer| ctx.player_map.get_by_left(&peer))
-                .copied();
-            self.entity_infos.remove(&lid);
-            let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
-                continue;
+        let mut errors = crate::ErrorBatch::default();
+        // Both queues are taken rather than drained in place: a drain that is
+        // abandoned part way through discards everything it hasn't reached yet, and
+        // nothing ever asks for these kills again, so entities the owning peer
+        // killed would stay alive here for the rest of the run.
+        //
+        // A lid this loop fails on is dropped rather than put back. It is still in
+        // tracked, so a retry would find its entity again, but there is nothing here
+        // to make the next attempt go any differently and no budget for retrying
+        // forever - the usual reason for a failure is an entity that died on its own
+        // between being queued and being handled, which never recovers.
+        let pending_death_notify = std::mem::take(&mut self.pending_death_notify);
+        let mut kill =
+            |lid: Lid, wait_on_kill: bool, responsible: Option<PeerId>| -> eyre::Result<()> {
+                let responsible_entity = responsible
+                    .and_then(|peer| ctx.player_map.get_by_left(&peer))
+                    .copied();
+                self.entity_infos.remove(&lid);
+                let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
+                    return Ok(());
+                };
+                let handle = entity_manager.handle(entity)?;
+                if let Some(explosion) =
+                    handle.try_get_first_component::<ExplodeOnDamageComponent>(ComponentTag::None)
+                {
+                    explosion.set_explode_on_death_percent(1.0)?;
+                }
+                if let Some(inv) = entity
+                    .children(None)
+                    .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
+                {
+                    inv.children(None).for_each(|e| e.kill())
+                }
+                if let Some(damage) =
+                    handle.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+                {
+                    entity_manager.remove_ent(&entity);
+                    entity
+                        .children(Some("protection".into()))
+                        .for_each(|ent| ent.kill());
+                    self.pending_remove.retain(|l| l != &lid);
+                    if !wait_on_kill {
+                        damage.set_wait_for_kill_flag_on_death(false)?;
+                    }
+                    damage.object_set_value("damage_multipliers", "curse", 1.0)?;
+                    entity.inflict_damage(
+                        damage.hp()? + f32::MIN_POSITIVE as f64,
+                        DamageType::DamageCurse,
+                        "kill sync",
+                        responsible_entity,
+                    )?;
+                    damage.set_ui_report_damage(false)?;
+                    entity.inflict_damage(
+                        damage.max_hp()? * 100.0,
+                        DamageType::DamageCurse,
+                        "kill sync",
+                        responsible_entity,
+                    )?;
+                    if wait_on_kill {
+                        damage.set_kill_now(true)?;
+                    } else {
+                        entity.kill()
+                    }
+                }
+                Ok(())
             };
-            let handle = entity_manager.handle(entity)?;
-            if let Some(explosion) =
-                handle.try_get_first_component::<ExplodeOnDamageComponent>(ComponentTag::None)
-            {
-                explosion.set_explode_on_death_percent(1.0)?;
-            }
-            if let Some(inv) = entity
-                .children(None)
-                .find(|e| e.name().unwrap_or("".into()) == "inventory_quick")
-            {
-                inv.children(None).for_each(|e| e.kill())
-            }
-            if let Some(damage) =
-                handle.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
-            {
-                entity_manager.remove_ent(&entity);
-                entity
-                    .children(Some("protection".into()))
-                    .for_each(|ent| ent.kill());
-                self.pending_remove.retain(|l| l != &lid);
-                if !wait_on_kill {
-                    damage.set_wait_for_kill_flag_on_death(false)?;
-                }
-                damage.object_set_value("damage_multipliers", "curse", 1.0)?;
-                entity.inflict_damage(
-                    damage.hp()? + f32::MIN_POSITIVE as f64,
-                    DamageType::DamageCurse,
-                    "kill sync",
-                    responsible_entity,
-                )?;
-                damage.set_ui_report_damage(false)?;
-                entity.inflict_damage(
-                    damage.max_hp()? * 100.0,
-                    DamageType::DamageCurse,
-                    "kill sync",
-                    responsible_entity,
-                )?;
-                if wait_on_kill {
-                    damage.set_kill_now(true)?;
-                } else {
-                    entity.kill()
-                }
+        for (lid, wait_on_kill, responsible) in pending_death_notify {
+            if let Err(err) = kill(lid, wait_on_kill, responsible) {
+                errors.push(err);
             }
         }
-        for lid in self.pending_remove.drain(..) {
+        // Taken after the loop above, which drops entries from it as it kills. This
+        // loop takes the lid out of tracked before the part that can fail, so unlike
+        // the one above there is nothing left to put back in any case.
+        let pending_remove = std::mem::take(&mut self.pending_remove);
+        let mut remove = |lid: Lid| -> eyre::Result<()> {
             self.entity_infos.remove(&lid);
             if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
                 safe_entitykill(entity_manager.handle(entity)?);
             }
+            Ok(())
+        };
+        for lid in pending_remove {
+            if let Err(err) = remove(lid) {
+                errors.push(err);
+            }
         }
-        Ok(())
+        errors.finish()
     }
 
     pub(crate) fn spawn_projectiles(&self, projectiles: &[ProjectileFired]) {
@@ -2191,8 +2263,11 @@ impl RemoteDiffModel {
         self.backtrack.drain(..)
     }*/
 
-    pub(crate) fn drain_grab_request(&mut self) -> impl Iterator<Item = Lid> + '_ {
-        self.grab_request.drain(..)
+    /// Hands the queue over rather than lending out a `Drain`: the caller sends a
+    /// message per lid, and a `Drain` dropped on the first failed send would take
+    /// every lid behind it with it.
+    pub(crate) fn drain_grab_request(&mut self) -> Vec<Lid> {
+        std::mem::take(&mut self.grab_request)
     }
 }
 
