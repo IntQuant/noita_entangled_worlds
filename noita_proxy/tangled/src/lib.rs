@@ -10,7 +10,11 @@ pub use error::NetError;
 
 /// Maximum size of a message which fits into a single datagram.
 /// Somewhat arbitrary, but if it gets this large something probably went wrong.
-pub const MAX_MESSAGE_LEN: usize = 2 * 1024 * 1024 * 1024;
+/// Upper bound on a single framed message. The receive path allocates the
+/// wire-supplied length before reading the body, so this has to be a size we
+/// are willing to have a peer allocate on demand - the previous 2 GiB was
+/// effectively no limit, and was never checked anywhere regardless.
+pub const MAX_MESSAGE_LEN: usize = 64 * 1024 * 1024;
 
 mod common;
 mod connection_manager;

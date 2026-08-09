@@ -32,14 +32,20 @@ impl From<SteamId> for OmniPeerId {
     }
 }
 
-impl From<OmniPeerId> for PeerId {
-    fn from(value: OmniPeerId) -> Self {
-        Self(
-            value
-                .0
-                .try_into()
-                .expect("Assuming PeerId was stored here, so conversion should succeed"),
-        )
+/// `OmniPeerId` is a 64-bit union of a tangled `PeerId` (16 bits) and a
+/// `SteamId` (64 bits), with no discriminant. Ids reach us from the wire (e.g.
+/// `NetMsg::PlayerColor`) and from the local mod, so narrowing is genuinely
+/// fallible - this used to be an infallible `From` with an `expect`, which meant
+/// one oversized id from any peer killed the net thread.
+impl TryFrom<OmniPeerId> for PeerId {
+    type Error = tangled::NetError;
+
+    fn try_from(value: OmniPeerId) -> Result<Self, Self::Error> {
+        value
+            .0
+            .try_into()
+            .map(Self)
+            .map_err(|_| tangled::NetError::UnknownPeer)
     }
 }
 
@@ -99,7 +105,7 @@ impl PeerVariant {
         reliability: Reliability,
     ) -> Result<(), tangled::NetError> {
         match self {
-            PeerVariant::Tangled(p) => p.send(peer.into(), msg, reliability),
+            PeerVariant::Tangled(p) => p.send(peer.try_into()?, msg, reliability),
             PeerVariant::Steam(p) => {
                 p.send_message(peer.into(), &msg, reliability)
                     .map_err(|e| match e {
