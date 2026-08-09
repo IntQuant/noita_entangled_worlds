@@ -88,15 +88,19 @@ function module.on_draw_debug_window(imgui)
 end
 
 function module.on_world_update()
-    local temp = ModSettingGet("quant.ew.log_performance") or false
-    if temp ~= log then
-        log = temp
-        ewext.set_log(log)
-    end
-    local temp = ModSettingGet("quant.ew.cache") or false
-    if temp ~= bypass_cache then
-        bypass_cache = temp
-        ewext.set_bypass_cache(bypass_cache)
+    -- These only change when the player is in the settings menu; polling them
+    -- every frame is a string-keyed engine lookup per setting per frame.
+    if GameGetFrameNum() % 60 == 0 then
+        local temp = ModSettingGet("quant.ew.log_performance") or false
+        if temp ~= log then
+            log = temp
+            ewext.set_log(log)
+        end
+        temp = ModSettingGet("quant.ew.cache") or false
+        if temp ~= bypass_cache then
+            bypass_cache = temp
+            ewext.set_bypass_cache(bypass_cache)
+        end
     end
     if GameGetWorldStateEntity() ~= initial_world_state_entity then
         oh_another_world_state(GameGetWorldStateEntity())
