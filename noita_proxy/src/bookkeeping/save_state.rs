@@ -9,6 +9,8 @@ use std::{
 
 use tracing::{error, info, warn};
 
+use crate::net::RunInfo;
+
 pub trait SaveStateEntry: bitcode::Encode + bitcode::DecodeOwned {
     const FILENAME: &'static str;
 }
@@ -27,15 +29,19 @@ pub struct SaveState {
 
 impl SaveState {
     pub(crate) fn new(path: impl AsRef<Path>) -> Self {
-        let has_savestate = path.as_ref().join("run_info.bit").exists();
+        let path = path.as_ref();
+        let has_savestate = path.join(format!("{}.bit", RunInfo::FILENAME)).exists();
         info!("Has savestate: {has_savestate}");
-        if let Err(err) = fs::create_dir_all(&path) {
+        if !has_savestate {
+            // Without a run info there is no run to continue, so anything else in here is either
+            // stale or from an older format. bitcode is not self describing, so bumping the run
+            // info filename is what keeps old saves from being decoded as the new shapes.
+            fs::remove_dir_all(path).ok();
+        }
+        if let Err(err) = fs::create_dir_all(path) {
             error!("Error while creating directories: {err}");
         }
-        let path = path
-            .as_ref()
-            .canonicalize()
-            .unwrap_or(path.as_ref().to_path_buf());
+        let path = path.canonicalize().unwrap_or(path.to_path_buf());
         info!("Will save to: {}", path.display());
         Self {
             path,

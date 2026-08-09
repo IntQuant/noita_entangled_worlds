@@ -78,7 +78,9 @@ pub(crate) struct RunInfo {
 }
 
 impl SaveStateEntry for RunInfo {
-    const FILENAME: &'static str = "run_info";
+    /// Bump whenever any save state format changes incompatibly: `SaveState` discards a save
+    /// directory that has no run info under this name.
+    const FILENAME: &'static str = "run_info_v2";
 }
 
 pub(crate) struct NetInnerState {
