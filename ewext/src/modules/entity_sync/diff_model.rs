@@ -852,12 +852,11 @@ impl LocalDiffModel {
                 "mods/quant.ew/files/system/entity_sync_helper/death_notify.lua".into(),
             )
         })?;
-        let n = entity_manager.get_var(const { VarName::from_str("ew_gid_lid") });
-        if let Some(lua) = n {
+        if let Some(lua) = entity_manager.get_var(const { VarName::from_str("ew_gid_lid") }) {
             entity_manager.remove_component(lua)?;
         }
-        let var = entity_manager.add_component::<VariableStorageComponent>()?;
-        var.set_name("ew_gid_lid".into())?;
+        let var = entity_manager
+            .add_component_with_var_name(const { VarName::from_str("ew_gid_lid") })?;
         var.set_value_string(gid.0.to_string().into())?;
         var.set_value_int(i32::from_le_bytes(lid.0.to_le_bytes()))?;
         var.set_value_bool(true)?;
@@ -1673,8 +1672,7 @@ impl RemoteDiffModel {
                     "mods/quant.ew/files/system/entity_sync_helper/immortal.lua".into(),
                 )?;
                 entity_manager
-                    .add_component::<VariableStorageComponent>()?
-                    .set_name("ew_has_started".into())?;
+                    .add_component_with_var_name(const { VarName::from_str("ew_has_started") })?;
                 entity
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
@@ -2370,8 +2368,8 @@ pub fn init_remote_entity(
     }
 
     if let Some(lid) = lid {
-        let var = entity_manager.add_component::<VariableStorageComponent>()?;
-        var.set_name("ew_gid_lid".into())?;
+        let var = entity_manager
+            .add_component_with_var_name(const { VarName::from_str("ew_gid_lid") })?;
         if let Some(gid) = gid {
             var.set_value_string(gid.0.to_string().into())?;
         }

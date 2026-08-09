@@ -1260,7 +1260,10 @@ impl ComponentData {
         }
     }
     fn new_with_name(id: ComponentID, name: VarName) -> Self {
-        let mut c = Self::new(id, true);
+        // `false` because the caller already knows the name: asking Noita for it
+        // is a lua call whose answer is overwritten on the next line, and on a
+        // freshly added component that answer is empty anyway.
+        let mut c = Self::new(id, false);
         c.name = name;
         c
     }
@@ -1767,6 +1770,29 @@ impl EntityManager {
             c.tags.set(tag as u16);
         }
         Ok(())
+    }
+    /// Adds a named `VariableStorageComponent` to the current entity, keeping the
+    /// snapshot in step.
+    ///
+    /// Naming it through the raw `ComponentID` afterwards instead leaves the
+    /// snapshot's name as it was when the component was added - `VarName::None`,
+    /// since a component is unnamed until Noita is told otherwise - so `get_var`
+    /// never finds it again and callers that remove-then-add pile up duplicates.
+    ///
+    /// Only for names `VarName` knows: `VarName::Unknown` has no string to write -
+    /// that is what `get_var_or_default_unknown` is for - and `VarName::None` would
+    /// name the component the empty string, which is what it is called already.
+    pub fn add_component_with_var_name(
+        &mut self,
+        name: VarName,
+    ) -> eyre::Result<VariableStorageComponent> {
+        let var = if self.bypass_cache {
+            self.entity().add_component::<VariableStorageComponent>()?
+        } else {
+            self.add_component_var::<VariableStorageComponent>(name)?
+        };
+        var.set_name(name.to_str().into())?;
+        Ok(var)
     }
     pub fn set_components_with_tag_enabled(
         &mut self,
