@@ -546,6 +546,10 @@ impl LocalDiffModelTracker {
                     }
                 })
                 .collect();
+            // Hand the map back before anything below can bail out: it is on
+            // loan from the manager, and `get_file` unwraps it, so an early
+            // return here takes the game down on the next entity.
+            entity_manager.files = files;
             if let Some(ai) =
                 entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)
                 && ai.attack_ranged_use_laser_sight()?
@@ -569,7 +573,6 @@ impl LocalDiffModelTracker {
                     Target::None
                 }
             }
-            entity_manager.files = files;
         }
 
         info.synced_var = entity_manager
@@ -1870,38 +1873,45 @@ impl RemoteDiffModel {
             ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
         } else {
             let mut files = std::mem::take(&mut entity_manager.files);
-            let sprites =
-                entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
-            for (sprite, animation) in sprites
-                .filter(|sprite| {
-                    sprite
-                        .image_file()
-                        .map(|c| c.ends_with(".xml"))
-                        .unwrap_or(false)
-                })
-                .zip(entity_info.animations.iter())
-            {
-                sprite.set_special_scale_x(if entity_info.facing_direction.0 {
-                    1.0
-                } else {
-                    -1.0
-                })?;
-                sprite.set_special_scale_y(if entity_info.facing_direction.1 {
-                    1.0
-                } else {
-                    -1.0
-                })?;
-                if *animation == u16::MAX {
-                    continue;
+            // The map is on loan from the manager and `get_file` unwraps it, so
+            // every exit from this block has to hand it back - including the
+            // fallible ones, which is why the body is a closure.
+            let res = (|| -> eyre::Result<()> {
+                let sprites = entity_manager
+                    .iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
+                for (sprite, animation) in sprites
+                    .filter(|sprite| {
+                        sprite
+                            .image_file()
+                            .map(|c| c.ends_with(".xml"))
+                            .unwrap_or(false)
+                    })
+                    .zip(entity_info.animations.iter())
+                {
+                    sprite.set_special_scale_x(if entity_info.facing_direction.0 {
+                        1.0
+                    } else {
+                        -1.0
+                    })?;
+                    sprite.set_special_scale_y(if entity_info.facing_direction.1 {
+                        1.0
+                    } else {
+                        -1.0
+                    })?;
+                    if *animation == u16::MAX {
+                        continue;
+                    }
+                    let file = sprite.image_file()?;
+                    let text = noita_api::get_file(&mut files, file)?;
+                    if let Some(ani) = text.get(*animation as usize) {
+                        sprite.set_rect_animation(ani.into())?;
+                        sprite.set_next_rect_animation(ani.into())?;
+                    }
                 }
-                let file = sprite.image_file()?;
-                let text = noita_api::get_file(&mut files, file)?;
-                if let Some(ani) = text.get(*animation as usize) {
-                    sprite.set_rect_animation(ani.into())?;
-                    sprite.set_next_rect_animation(ani.into())?;
-                }
-            }
+                Ok(())
+            })();
             entity_manager.files = files;
+            res?;
         }
         let laser =
             entity_manager.try_get_first_component::<LaserEmitterComponent>(ComponentTag::None);
