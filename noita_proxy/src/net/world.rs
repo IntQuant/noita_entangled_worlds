@@ -77,7 +77,7 @@ pub(crate) enum WorldNetMessage {
         chunk_data: Option<ChunkData>,
         world_num: i32,
     },
-    // Ttell how to update a chunk storage
+    // Tell how to update a chunk storage
     UpdateStorage {
         chunk: ChunkCoord,
         chunk_data: Option<ChunkData>,

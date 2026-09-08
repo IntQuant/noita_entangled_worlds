@@ -57,7 +57,7 @@ fn try_lock_netmanager() -> eyre::Result<MutexGuard<'static, Option<NetManager>>
             bail!("Netmanager mutex already locked");
         }
         Err(TryLockError::Poisoned(_)) => {
-            bail!("Netnamager mutex poisoned");
+            bail!("Netmanager mutex poisoned");
         }
     }
 }

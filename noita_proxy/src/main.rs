@@ -76,10 +76,10 @@ async fn main() {
                 let file = loc.file();
                 let line = loc.line();
                 let col = loc.column();
-                error!("Panic occured at {file}:{line}:{col} : {payload}");
+                error!("Panic occurred at {file}:{line}:{col} : {payload}");
             }
             None => {
-                error!("Panic occured at unknown location: {payload}");
+                error!("Panic occurred at unknown location: {payload}");
             }
         }
 

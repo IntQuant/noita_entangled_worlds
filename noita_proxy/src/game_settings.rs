@@ -477,7 +477,7 @@ impl GameSettings {
                     .spell_ban_list
                     .clone()
                     .unwrap_or(def.spell_ban_list);
-                ui.label("spell ban list, by internal names, comma seperated");
+                ui.label("spell ban list, by internal names, comma separated");
                 if ui
                     .add_sized(
                         [ui.available_width() - 30.0, 20.0],
@@ -546,7 +546,7 @@ impl GameSettings {
                     .perk_ban_list
                     .clone()
                     .unwrap_or(def.perk_ban_list);
-                ui.label("perk ban list, by internal names, comma seperated");
+                ui.label("perk ban list, by internal names, comma separated");
                 if ui
                     .add_sized(
                         [ui.available_width() - 30.0, 20.0],
@@ -562,7 +562,7 @@ impl GameSettings {
                     .disabled_globals
                     .clone()
                     .unwrap_or(def.disabled_globals);
-                ui.label("global perks to ignore, by internal names, comma seperated, will cause undefined behaviour do not report issues, find list in perk_fns.lua");
+                ui.label("global perks to ignore, by internal names, comma separated, will cause undefined behaviour do not report issues, find list in perk_fns.lua");
                 if ui
                     .add_sized(
                         [ui.available_width() - 30.0, 20.0],

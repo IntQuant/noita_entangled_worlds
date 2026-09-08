@@ -25,7 +25,7 @@ Notable changes in this release:
 - Update Nix and cross-compilation by @Multirious in #471
 - Refactor nix with `nixfmt` by @Multirious in #470
 - ci: add matrix build for macOS (Intel & ARM64) by @artemkloko in #467
-- Added Transtlation to spanish by @Icey-the-dragon in #451
+- Added Translation to spanish by @Icey-the-dragon in #451
 - Fixed github release macos and lint workflow by @Icey-the-dragon in #450
 - Complete French translation by @leBourreau in #446
 - Create Linux (Lutris) install guide and automatic startup script by @LeoMerlino in #434

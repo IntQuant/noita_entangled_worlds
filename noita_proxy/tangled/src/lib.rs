@@ -101,13 +101,13 @@ impl Peer {
         Ok(())
     }
 
-    /// Return an iterator over recieved messages.
+    /// Return an iterator over received messages.
     /// Does not block.
     pub fn recv(&self) -> impl Iterator<Item = NetworkEvent> + '_ {
         self.shared.inbound_channel.1.try_iter()
     }
 
-    /// Return an iterator over recieved messages.
+    /// Return an iterator over received messages.
     /// Blocking.
     pub fn recv_blocking(&self) -> impl Iterator<Item = NetworkEvent> + '_ {
         self.shared.inbound_channel.1.iter()

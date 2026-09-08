@@ -96,7 +96,7 @@ impl NetInnerState {
         if let Some(ws) = &mut self.ms
             && let Err(err) = ws.write(data)
         {
-            error!("Error occured while sending to websocket: {}", err);
+            error!("Error occurred while sending to websocket: {}", err);
             self.ms = None;
             self.had_a_disconnect = true;
         };

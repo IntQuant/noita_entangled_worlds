@@ -1,4 +1,4 @@
-//! Distibuted Entity Sync, a.k.a. DES.
+//! Distributed Entity Sync, a.k.a. DES.
 //! The idea is that we completely disregard the normal saving system for entities we sync.
 //! Also, each entity gets an owner.
 //! Each peer broadcasts an "Interest" zone. If it intersects any peer they receive all information about entities this peer owns.
