@@ -2458,7 +2458,15 @@ fn spawn_entity_by_data(
         EntitySpawnInfo::Serialized {
             //serialized_at: _,
             data,
-        } => deserialize_entity(data, x, y),
+        } => {
+            let ent = deserialize_entity(data, x, y)?;
+            // Callers keep talking to the entity through the manager afterwards.
+            // Without this the whole post-spawn setup - hp, synced vars, gold
+            // drops - lands on whichever entity happened to be current.
+            // fix developed by mirashii
+            entity_manager.set_current_entity(ent)?;
+            Ok(ent)
+        }
     }
 }
 
