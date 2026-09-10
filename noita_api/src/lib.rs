@@ -14,6 +14,7 @@ use std::{
     ops::Deref,
 };
 pub mod lua;
+mod poly_gid;
 pub mod serialize;
 pub use noita_api_macro::add_lua_fn;
 
@@ -82,31 +83,9 @@ impl EntityID {
                             }
                             if let Ok(data) =
                                 base64::engine::general_purpose::STANDARD.decode(data.as_bytes())
+                                && let Some(gid) = poly_gid::gid_from_serialized_entity(&data)
                             {
-                                // mSerializedData is an arbitrary binary blob, so
-                                // it is not necessarily valid UTF-8 - building a
-                                // &str from it was UB, and iterating .chars()
-                                // over it could read past the end of the slice on
-                                // a truncated multi-byte sequence. The marker and
-                                // the digits are both ASCII, so scan the bytes.
-                                const MARKER: &[u8] = b"ew_gid_lid";
-                                if let Some(start) = data
-                                    .windows(MARKER.len())
-                                    .position(|w| w == MARKER)
-                                    .map(|i| i + MARKER.len())
-                                {
-                                    let mut gid = String::new();
-                                    let mut found = false;
-                                    for &c in &data[start..] {
-                                        if c.is_ascii_digit() {
-                                            found = true;
-                                            gid.push(char::from(c))
-                                        } else if found {
-                                            break;
-                                        }
-                                    }
-                                    return Ok(Some(Gid(gid.parse::<u64>()?)));
-                                }
+                                return Ok(Some(gid));
                             }
                         }
                         return Ok(None);
