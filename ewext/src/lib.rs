@@ -185,14 +185,14 @@ fn init_world_decode(lua: LuaState) -> eyre::Result<()> {
 /// actually written, so the Lua side can log/verify.
 ///
 /// Args: address of the blob, length in bytes.
-fn decode_area(lua: LuaState) -> eyre::Result<()> {
+fn decode_area(lua: LuaState) -> eyre::Result<ValuesOnStack> {
     let data_ptr = lua.to_integer(1) as *const u8;
     let data_len = lua.to_integer(2) as usize;
     if data_ptr.is_null() || data_len == 0 {
         bail!("decode_area got an empty buffer");
     }
 
-    ExtState::with_global(|state| {
+    let written = ExtState::with_global(|state| {
         let fns = state
             .world_fns
             .ok_or_eyre("Native world decode is not initialized")?;
@@ -206,8 +206,10 @@ fn decode_area(lua: LuaState) -> eyre::Result<()> {
         // SAFETY: called from the Lua world-update hook on the game's main
         // thread, which is the only place world mutation is legal.
         unsafe { pws.decode_area(data, &fns) }
-    })?
-    .map(|_| ())
+    })??;
+
+    lua.push_integer(written as isize);
+    Ok(ValuesOnStack(1))
 }
 
 fn encode_area(lua: LuaState) -> ValuesOnStack {

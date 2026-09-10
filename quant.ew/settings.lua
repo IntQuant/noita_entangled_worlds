@@ -293,9 +293,9 @@ local function build_settings()
                 },
                 {
                     id = "rust_world_decode",
-                    ui_name = "native world decode",
-                    ui_description = "decode incoming terrain in ewext instead of lua. much faster; turn off if terrain desyncs",
-                    value_default = true,
+                    ui_name = "native world decode (experimental)",
+                    ui_description = "decode incoming terrain in ewext instead of lua. much faster, but not yet verified in a real session - turn on at your own risk",
+                    value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
