@@ -245,8 +245,13 @@ function OnProjectileFired(
             rng = (shooter_player_data.projectile_seed_chain[entity_that_shot] or 0) + 25
         end
     end
-    player_fns.set_projectile_seed(shooter_player_data, shooter_id - 1, rng)
-    player_fns.set_projectile_seed(shooter_player_data, entity_that_shot, rng)
+    -- `shooter_id - 1`, key 0 and the world-state entity are read back on every
+    -- shot for the rest of the session, so they must not be evicted by the ring
+    -- in set_projectile_seed. `projectile_id` (and `entity_that_shot` when it is
+    -- a parent projectile) is only read while its chain is still firing.
+    local shot_is_anchor = projectileComponent == nil or entity_that_shot == 0
+    player_fns.set_projectile_seed(shooter_player_data, shooter_id - 1, rng, true)
+    player_fns.set_projectile_seed(shooter_player_data, entity_that_shot, rng, shot_is_anchor)
     player_fns.set_projectile_seed(shooter_player_data, projectile_id, rng)
     for _, lua in ipairs(EntityGetComponent(projectile_id, "LuaComponent") or {}) do
         local src = ComponentGetValue2(lua, "script_source_file")
@@ -340,7 +345,16 @@ function OnProjectileFiredPost(
         local vel = EntityGetFirstComponentIncludingDisabled(projectile_id, "VelocityComponent")
         if vel ~= nil then
             local x, y = ComponentGetValue2(vel, "mVelocity")
-            local m = shooter_player_data.fps / ctx.my_player.fps
+            -- player_sync.update_fps stores math.min(60, math.floor(fps + 0.5)),
+            -- which is 0 on a stalled frame (and nan if two samples land in the
+            -- same real-world millisecond); the field is also absent until the
+            -- first update. Any of those would make this ratio inf or nan and
+            -- fling the projectile at a garbage velocity, so fall back to 1x.
+            local their_fps, my_fps = shooter_player_data.fps, ctx.my_player.fps
+            local m = 1
+            if their_fps ~= nil and my_fps ~= nil and their_fps > 0 and my_fps > 0 then
+                m = their_fps / my_fps
+            end
             ComponentSetValue2(vel, "mVelocity", x * m, y * m)
         end
     end

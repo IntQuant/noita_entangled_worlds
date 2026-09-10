@@ -382,6 +382,9 @@ local player_fns = {
             -- player_fns.set_projectile_seed.
             projectile_seed_order = {},
             projectile_seed_tail = 1,
+            -- Keys held outside the ring and never evicted; see
+            -- player_fns.set_projectile_seed.
+            projectile_seed_anchors = {},
             currently_polymorphed = false,
             mouse_x = 0,
             pos_x = 0,
@@ -398,12 +401,29 @@ local player_fns = {
 -- projectile_seed_chain is keyed by entity id, and Noita never reuses entity
 -- ids, so writing to it unconditionally leaked ~3 entries per projectile fired
 -- for the whole session (unbounded memory, growing GC cost, and a rehash pause
--- at every doubling). Only the recently-fired projectiles are ever read back,
--- so bound it with an insertion-order ring and evict the oldest.
+-- at every doubling). Per-projectile keys are read back only while the chain
+-- they belong to is still firing, so bound those with an insertion-order ring
+-- and evict the oldest.
+--
+-- Anchor keys are the exception: OnProjectileFired re-reads `shooter_id - 1`,
+-- key 0 and the world-state entity on *every* shot, for the whole session, so
+-- evicting one silently resets that player's seed chain to 25 and desyncs the
+-- shot. There are at most a handful per player, so they are held out of the
+-- ring and never evicted. Callers mark them via the `anchor` argument.
 local SEED_CHAIN_MAX = 4096
 
-function player_fns.set_projectile_seed(player_data, key, rng)
+function player_fns.set_projectile_seed(player_data, key, rng, anchor)
     local chain = player_data.projectile_seed_chain
+    local anchors = player_data.projectile_seed_anchors
+    if anchors == nil then
+        anchors = {}
+        player_data.projectile_seed_anchors = anchors
+    end
+    if anchor then
+        anchors[key] = true
+        chain[key] = rng
+        return
+    end
     if chain[key] == nil then
         local order = player_data.projectile_seed_order
         local tail = player_data.projectile_seed_tail
@@ -413,7 +433,9 @@ function player_fns.set_projectile_seed(player_data, key, rng)
             player_data.projectile_seed_order = order
         end
         local evicted = order[tail]
-        if evicted ~= nil then
+        -- A key can be promoted to an anchor after it took a ring slot; leave
+        -- the value alone in that case and just reuse the slot.
+        if evicted ~= nil and not anchors[evicted] then
             chain[evicted] = nil
         end
         order[tail] = key

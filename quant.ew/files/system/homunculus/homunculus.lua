@@ -43,6 +43,17 @@ local function get_lukki(entity)
     return alive
 end
 
+-- Register a locally-spawned minion in the cache straight away. Without this
+-- the receiver below re-derives `#l` from a list that is up to
+-- LUKKI_RESCAN_INTERVAL frames stale, so every message that arrives before the
+-- next rescan spawns `#lu - #l` minions again.
+local function add_lukki(entity, child)
+    local cached = lukki_cache[entity]
+    if cached ~= nil then
+        table.insert(cached.list, child)
+    end
+end
+
 local function get_entities(entity)
     local homunculy = {}
     local ghost = {}
@@ -95,6 +106,7 @@ function rpc.send_positions(ho, lu, gh, f)
             EntityRemoveComponent(n, EntityGetFirstComponent(n, "LuaComponent"))
             EntityAddTag(n, "perk_entity")
             util.make_ephemerial(n)
+            add_lukki(ctx.rpc_player_data.entity, n)
         end
     end
     if #gh ~= 0 then
