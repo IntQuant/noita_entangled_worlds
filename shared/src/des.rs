@@ -176,7 +176,6 @@ pub enum EntityUpdate {
     SetRotation(f32),
     SetVelocity(f32, f32),
     SetHp(f32),
-    SetMaxHp(Option<f32>),
     SetPhysInfo(Vec<Option<PhysBodyInfo>>),
     // TODO...
     RemoveEntity(Lid),
@@ -200,6 +199,10 @@ pub enum EntityUpdate {
     SetIsEnabled(bool),
     SetCounter(u8),
     SetSyncedVar(Vec<(String, String, i32, f32, bool)>),
+    // New variants go at the end. bitcode encodes the variant by its index in
+    // this list, so inserting one anywhere else renumbers every variant after
+    // it and a peer on an older build silently applies the wrong update.
+    SetMaxHp(Option<f32>),
 }
 
 #[derive(Debug, Encode, Decode, Clone)]
