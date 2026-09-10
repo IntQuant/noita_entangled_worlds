@@ -785,6 +785,48 @@ impl LocalDiffModel {
         gid: Gid,
         entity_manager: &mut EntityManager,
     ) -> eyre::Result<Lid> {
+        match self.track_entity_inner(entity, gid, entity_manager) {
+            Ok(lid) => Ok(lid),
+            Err(err) => {
+                // The map writes are safe now that they happen last, but the
+                // marks left on the entity itself are not: a failure part-way
+                // through leaves DES_TAG and an `ew_gid_lid` naming a lid that
+                // is registered nowhere. Those two are exactly what other peers
+                // read to decide that someone else owns this entity, so they
+                // would keep deferring to a peer that is not syncing it, and it
+                // would look tracked to any later attempt. Strip them so the
+                // entity is plainly untracked again.
+                if let Err(cleanup_err) = Self::undo_track_marks(entity, entity_manager) {
+                    return Err(err.wrap_err(format!(
+                        "additionally, undoing the partial tracking marks failed: {cleanup_err:?}"
+                    )));
+                }
+                Err(err)
+            }
+        }
+    }
+
+    /// Removes the tracking marks `track_entity_inner` may have written before
+    /// it failed.
+    ///
+    /// The lid itself is not reclaimed: `next_lid` only counts up and never
+    /// reuses a value, so a gap in it costs nothing, whereas handing the same
+    /// lid out twice would not.
+    fn undo_track_marks(entity: EntityID, entity_manager: &mut EntityManager) -> eyre::Result<()> {
+        let mut handle = entity_manager.handle(entity)?;
+        handle.remove_tag(const { CachedTag::from_tag(DES_TAG) })?;
+        if let Some(var) = handle.get_var(const { VarName::from_str("ew_gid_lid") }) {
+            handle.remove_component(var)?;
+        }
+        Ok(())
+    }
+
+    fn track_entity_inner(
+        &mut self,
+        entity: EntityID,
+        gid: Gid,
+        entity_manager: &mut EntityManager,
+    ) -> eyre::Result<Lid> {
         let mut handle = entity_manager.handle(entity)?;
         self.wait_to_transfer = 16;
         let lid = self.alloc_lid();
