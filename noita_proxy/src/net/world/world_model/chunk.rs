@@ -24,6 +24,10 @@ pub struct Pixel {
 }
 
 impl Pixel {
+    /// Materials must fit in 11 bits once incremented, so ids at or above this
+    /// cannot be represented in the compact form.
+    pub const MAX_MATERIAL: u16 = 2046;
+
     pub fn to_raw(self) -> RawPixel {
         RawPixel {
             material: if self.flags != PixelFlags::Unknown {
@@ -44,30 +48,37 @@ impl Pixel {
         } else {
             1
         };
-        let material = (self.material + 1) & 2047; // 11 bits for material
-        let raw = if self.flags == PixelFlags::Unknown {
+        // Only 11 bits are available for the material, and the encoding stores
+        // `material + 1` so that raw 0 is never produced (CompactPixel is a
+        // NonZeroU16). Ids at or above the limit used to wrap: 2047+Normal
+        // produced raw 0 and panicked the unwrap, 2046+Fluid collided with
+        // UNKNOWN_RAW, and anything >= 2048 silently aliased mod 2048. Encode
+        // them as Unknown instead - wrong, but neither a crash nor a silent
+        // impersonation of an unrelated material.
+        let raw = if self.flags == PixelFlags::Unknown || self.material >= Self::MAX_MATERIAL {
             CompactPixel::UNKNOWN_RAW
         } else {
-            (material << 1) | flag_bit
+            ((self.material + 1) << 1) | flag_bit
         };
         CompactPixel(NonZeroU16::new(raw).unwrap())
     }
     fn from_compact(compact: CompactPixel) -> Self {
         let raw = u16::from(compact.0);
+        // Must be checked before the arithmetic below: UNKNOWN_RAW is 4095, and
+        // `(4095 >> 1) - 1` is fine, but raw values of 0 or 1 would underflow.
+        if raw == CompactPixel::UNKNOWN_RAW || raw < 2 {
+            return Pixel {
+                flags: PixelFlags::Unknown,
+                material: 0,
+            };
+        }
         let material = (raw >> 1) - 1;
         let flags = if raw & 1 == 1 {
             PixelFlags::Fluid
         } else {
             PixelFlags::Normal
         };
-        if raw == CompactPixel::UNKNOWN_RAW {
-            Pixel {
-                flags: PixelFlags::Unknown,
-                material: 0,
-            }
-        } else {
-            Pixel { flags, material }
-        }
+        Pixel { flags, material }
     }
 }
 
@@ -142,6 +153,33 @@ fn test_changed() {
         std::hint::black_box(chunk);
     }
     println!("bool {}", tmr.elapsed().as_nanos())
+}
+
+#[test]
+fn compact_pixel_round_trip() {
+    // Every representable material, both flag states. This previously panicked
+    // on material 2047 (raw 0 -> NonZeroU16::new().unwrap()) and on the
+    // `(raw >> 1) - 1` underflow, and silently aliased ids >= 2048.
+    for material in 0..=u16::MAX {
+        for flags in [PixelFlags::Normal, PixelFlags::Fluid] {
+            let px = Pixel { flags, material };
+            let round = Pixel::from_compact(px.to_compact());
+            if material < Pixel::MAX_MATERIAL {
+                assert_eq!(round, px, "material {material} with {flags:?}");
+            } else {
+                assert_eq!(
+                    round.flags,
+                    PixelFlags::Unknown,
+                    "out-of-range material {material} should degrade to Unknown, not alias"
+                );
+            }
+        }
+    }
+    let unknown = Pixel {
+        flags: PixelFlags::Unknown,
+        material: 0,
+    };
+    assert_eq!(Pixel::from_compact(unknown.to_compact()), unknown);
 }
 
 impl Default for Chunk {

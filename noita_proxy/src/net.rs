@@ -119,45 +119,57 @@ enum FlagType {
     Stevari(String, i32, i32),
 }
 
+/// Cap on the declared uncompressed size of a peer-supplied message.
+///
+/// `lz4_flex::decompress_size_prepended` reads the u32 length prefix and
+/// allocates it *before* decompressing, so ~8 hostile bytes could request a
+/// 4 GiB allocation. Read the prefix ourselves and reject implausible sizes.
+const MAX_DECOMPRESSED_LEN: usize = 64 * 1024 * 1024;
+
+fn decompress_bounded(data: &[u8]) -> Option<Vec<u8>> {
+    let (size, rest) = lz4_flex::block::uncompressed_size(data).ok()?;
+    if size > MAX_DECOMPRESSED_LEN {
+        warn!("Rejecting message declaring {size} decompressed bytes");
+        return None;
+    }
+    lz4_flex::decompress(rest, size).ok()
+}
+
 fn get_flags(mut flags: String) -> Option<FlagType> {
     if flags.is_empty() {
         return None;
     }
-    match flags.remove(0) {
+    let tag = flags.remove(0);
+    // `flags` is the payload of NetMsg::Flags, i.e. it comes from a peer. These
+    // used to index c[1]..c[3] directly, so a short message panicked the net
+    // thread; match on the split slice instead.
+    let c: Vec<&str> = flags.split(' ').collect();
+    match tag {
         '0' => Some(FlagType::Normal(flags)),
-        '1' => {
-            let c = flags
-                .split(' ')
-                .map(|a| a.to_string())
-                .collect::<Vec<String>>();
-            Some(FlagType::Slow(
-                c[1].clone(),
-                c[0].parse().unwrap_or_default(),
-            ))
-        }
-        '2' => {
-            let c = flags
-                .split(' ')
-                .map(|a| a.to_string())
-                .collect::<Vec<String>>();
-            Some(FlagType::Moon(
-                c[3].clone(),
-                c[0].parse().unwrap_or_default(),
-                c[1].parse().unwrap_or_default(),
-                c[2] == "1",
-            ))
-        }
-        '3' => {
-            let c = flags
-                .split(' ')
-                .map(|a| a.to_string())
-                .collect::<Vec<String>>();
-            Some(FlagType::Stevari(
-                c[2].clone(),
-                c[0].parse().unwrap_or_default(),
-                c[1].parse().unwrap_or_default(),
-            ))
-        }
+        '1' => match c.as_slice() {
+            [slow, name, ..] => Some(FlagType::Slow(
+                (*name).to_string(),
+                slow.parse().unwrap_or_default(),
+            )),
+            _ => None,
+        },
+        '2' => match c.as_slice() {
+            [x, y, flag, name, ..] => Some(FlagType::Moon(
+                (*name).to_string(),
+                x.parse().unwrap_or_default(),
+                y.parse().unwrap_or_default(),
+                *flag == "1",
+            )),
+            _ => None,
+        },
+        '3' => match c.as_slice() {
+            [x, y, name, ..] => Some(FlagType::Stevari(
+                (*name).to_string(),
+                x.parse().unwrap_or_default(),
+                y.parse().unwrap_or_default(),
+            )),
+            _ => None,
+        },
         _ => None,
     }
 }
@@ -726,8 +738,7 @@ impl NetManager {
                 }
             }
             omni::OmniNetworkEvent::Message { src, data } => {
-                let Some(net_msg) = lz4_flex::decompress_size_prepended(&data)
-                    .ok()
+                let Some(net_msg) = decompress_bounded(&data)
                     .and_then(|decomp| bitcode::decode::<NetMsg>(&decomp).ok())
                 else {
                     return;
@@ -819,7 +830,7 @@ impl NetManager {
                 state.try_ms_write(&ws_encode_mod(src, &data));
             }
             NetMsg::ModCompressed { data } => {
-                if let Ok(decompressed) = lz4_flex::decompress_size_prepended(&data) {
+                if let Some(decompressed) = decompress_bounded(&data) {
                     state.try_ms_write(&ws_encode_mod(src, &decompressed));
                 }
             }

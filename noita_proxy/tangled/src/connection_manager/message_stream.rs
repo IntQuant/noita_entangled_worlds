@@ -62,6 +62,9 @@ impl<Msg: DecodeOwned> RecvMessageStream<Msg> {
             .await
             .map_err(|_err| DirectConnectionError::MessageIoFailed)?;
         trace!("Expecting message of len {len}");
+        if len as usize > crate::MAX_MESSAGE_LEN {
+            return Err(DirectConnectionError::MessageIoFailed);
+        }
         let mut buf = vec![0; len as usize];
         self.inner
             .read_exact(&mut buf)

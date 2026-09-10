@@ -14,6 +14,7 @@ use std::{
     ops::Deref,
 };
 pub mod lua;
+mod poly_gid;
 pub mod serialize;
 pub use noita_api_macro::add_lua_fn;
 
@@ -82,21 +83,9 @@ impl EntityID {
                             }
                             if let Ok(data) =
                                 base64::engine::general_purpose::STANDARD.decode(data.as_bytes())
+                                && let Some(gid) = poly_gid::gid_from_serialized_entity(&data)
                             {
-                                let data = unsafe { str::from_utf8_unchecked(&data) };
-                                if let Some((_, data)) = data.split_once("ew_gid_lid") {
-                                    let mut gid = String::new();
-                                    let mut found = false;
-                                    for c in data.chars() {
-                                        if c.is_numeric() {
-                                            found = true;
-                                            gid.push(c)
-                                        } else if found {
-                                            break;
-                                        }
-                                    }
-                                    return Ok(Some(Gid(gid.parse::<u64>()?)));
-                                }
+                                return Ok(Some(gid));
                             }
                         }
                         return Ok(None);

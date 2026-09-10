@@ -11,11 +11,20 @@ use bitcode::{DecodeOwned, Encode};
 use eyre::{Context, bail};
 use tracing::info;
 
+/// Upper bound on a single framed message, to stop a corrupt or hostile length
+/// prefix from turning into a multi-gigabyte allocation. The largest legitimate
+/// message is a world update (~82 KB, see PIXEL_RUN_MAX in world_sync/world.lua)
+/// plus entity-sync batches, so this leaves a very wide margin.
+pub const MAX_MESSAGE_LEN: u32 = 64 * 1024 * 1024;
+
 fn read_one<T: DecodeOwned>(mut buf: impl Read) -> eyre::Result<T> {
     let mut len_buf = [0u8; 4];
     buf.read_exact(&mut len_buf)
         .wrap_err("Couldn't receive the length from stream")?;
     let len = u32::from_le_bytes(len_buf);
+    if len > MAX_MESSAGE_LEN {
+        bail!("Message length {len} exceeds the maximum of {MAX_MESSAGE_LEN}");
+    }
     let mut out_buf = vec![0; usize::try_from(len)?];
     buf.read_exact(out_buf.as_mut_slice())
         .wrap_err("Couldn't read message body")?;
