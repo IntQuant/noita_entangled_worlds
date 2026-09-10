@@ -321,7 +321,12 @@ impl RemoteDiffModel {
         for (_, ent) in self.tracked.into_iter() {
             match entity_manager.handle(ent) {
                 Ok(handle) => safe_entitykill(handle),
-                Err(err) => errors.push(err),
+                Err(err) => {
+                    errors.push(err);
+                    // There is no next attempt - this consumes the model - so the entity
+                    // is killed the blunt way rather than left alive and untracked.
+                    ent.kill();
+                }
             }
         }
         errors.finish()
@@ -1947,8 +1952,12 @@ impl RemoteDiffModel {
                 vel.set_m_velocity((vx, vy))?;
             }
         }
-        if let Some(damage) =
-            handle.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+        // Including disabled: the plain lookup filters on the cached enabled flag,
+        // and a component the game toggled behind the cache reads as absent. Missing
+        // it here means the copy is never hp-pinned at all - it keeps whatever hp it
+        // had, stays immune, and looks invulnerable.
+        if let Some(damage) = handle
+            .try_get_first_component_including_disabled::<DamageModelComponent>(ComponentTag::None)
         {
             // Has to happen before the hp reconciliation below, so that the healing it inflicts
             // isn't clamped by a max hp we are about to raise anyway. Max hp almost never moves, so
@@ -2134,23 +2143,91 @@ impl RemoteDiffModel {
         Ok(None)
     }
 
+    /// How long one `apply_entities` call gets: whatever is left of the frame
+    /// budget when it starts, floored so that it always gets to do something.
+    ///
+    /// It used to share the 5 ms measured from frame start with every phase ahead
+    /// of it - `update_pending_authority`, the track loop, `update_tracked_entities`
+    /// and `clear_buffer`'s blocking socket writes. On a loaded frame those spend
+    /// all of it, and this then took the cheap branch for every remote copy and
+    /// applied no hp at all: a frozen health bar on every remote unit, and local
+    /// hits that appear to do nothing.
+    pub(crate) const APPLY_ENTITIES_FRAME_BUDGET_US: u128 = 5000;
+    pub(crate) const APPLY_ENTITIES_MIN_BUDGET_US: u128 = 1000;
+
+    pub(crate) fn apply_entities_budget_us(frame_elapsed_us: u128) -> u128 {
+        Self::APPLY_ENTITIES_FRAME_BUDGET_US
+            .saturating_sub(frame_elapsed_us)
+            .max(Self::APPLY_ENTITIES_MIN_BUDGET_US)
+    }
+
+    /// Whether entity `i` gets the cheap position-and-hp pass rather than a full
+    /// `inner` one.
+    ///
+    /// `i == start` is never cheap, even with the budget already gone. The round
+    /// robin resumes at the first index this returns true for, so a call that made
+    /// no progress would hand back the `start` it was given and the scan would sit
+    /// on the same entity for the rest of the run.
+    fn is_cheap_pass(i: usize, start: usize, out_of_budget: bool) -> bool {
+        i < start || (out_of_budget && i > start)
+    }
+
+    /// Re-pins hp from the owner's stream with one read and, if it moved, one
+    /// write, skipping the curse/heal reconciliation `inner` does.
+    ///
+    /// Deliberately narrower than `inner`: it will not take a copy across zero in
+    /// either direction. A copy below zero that the owner reports alive needs
+    /// inner's revive handling, and a target at or below zero is a death, which
+    /// arrives as its own kill and is `kill_entities`' job to carry out along with
+    /// the `wait_for_kill_flag_on_death` and immortality handling that goes with it.
+    ///
+    /// Including disabled for the same reason as `inner` and `kill_entities`: the
+    /// enabled flag the plain lookup filters on is cached, and the game can toggle
+    /// a component behind the cache.
+    fn apply_pending_hp(entity_info: &EntityInfo, handle: &EntityHandle) -> eyre::Result<()> {
+        let Some(damage) = handle
+            .try_get_first_component_including_disabled::<DamageModelComponent>(ComponentTag::None)
+        else {
+            return Ok(());
+        };
+        // Max hp is inner's to move. Clamping against the value we were told keeps
+        // this path from showing a bar past full while max hp is still stale.
+        let target = entity_info
+            .max_hp
+            .map_or(entity_info.hp, |max| entity_info.hp.min(max));
+        if target <= 0.0 {
+            return Ok(());
+        }
+        let current_hp = damage.hp()? as f32;
+        if current_hp > 0.0 && current_hp != target {
+            damage.set_hp(target as f64)?;
+        }
+        Ok(())
+    }
+
+    /// Returns where the next call should resume, and whether this one ran over
+    /// its own budget.
     pub(crate) fn apply_entities(
         &mut self,
         ctx: &mut ModuleCtx,
         start: usize,
-        tmr: Instant,
+        budget_us: u128,
         entity_manager: &mut EntityManager,
         sprite_animations: &mut SpriteAnimations,
-    ) -> eyre::Result<usize> {
+    ) -> eyre::Result<(usize, bool)> {
+        // Measured from entry rather than from frame start, so that the phases
+        // ahead of this one cannot leave it with nothing.
+        let tmr = Instant::now();
         let mut to_remove = Vec::new();
         let l = self.entity_infos.len();
         let mut end = None;
         let start = if start >= l { 0 } else { start };
         for (i, (lid, entity_info)) in self.entity_infos.iter().enumerate() {
+            let cheap = Self::is_cheap_pass(i, start, tmr.elapsed().as_micros() > budget_us);
             match self.tracked.get_by_left(lid) {
                 Some(entity) if entity.is_alive() => {
                     let mut handle = entity_manager.handle(*entity)?;
-                    if tmr.elapsed().as_micros() > 5000 || start > i {
+                    if cheap {
                         if end.is_none() && start <= i {
                             end = Some(i);
                         }
@@ -2189,6 +2266,15 @@ impl RemoteDiffModel {
                                 entity.set_position(x, y, Some(entity_info.r as f64))?;
                             }
                         }
+                        // The point of keeping this branch cheap is that it still
+                        // runs when there is no budget for `inner`, and a copy
+                        // whose hp never moves is the visible half of that.
+                        // Reported rather than propagated, as the full pass does
+                        // with `inner`: one entity with a stale damage model must
+                        // not cost the peers behind it their whole frame.
+                        if let Err(s) = Self::apply_pending_hp(entity_info, &handle) {
+                            print_error(s)?
+                        }
                     } else {
                         match self.inner(ctx, entity_info, lid, &mut handle, sprite_animations) {
                             Ok(Some(lid)) => to_remove.push(lid),
@@ -2199,7 +2285,7 @@ impl RemoteDiffModel {
                 }
                 _ => {
                     if start <= i {
-                        if tmr.elapsed().as_micros() > 5000 {
+                        if cheap {
                             if end.is_none() {
                                 end = Some(i);
                             }
@@ -2233,7 +2319,7 @@ impl RemoteDiffModel {
             self.grab_request.push(lid);
             self.entity_infos.remove(&lid);
         }
-        Ok(end.unwrap_or(0))
+        Ok((end.unwrap_or(0), tmr.elapsed().as_micros() > budget_us))
     }
 
     pub(crate) fn kill_entities(
@@ -2247,19 +2333,19 @@ impl RemoteDiffModel {
         // nothing ever asks for these kills again, so entities the owning peer
         // killed would stay alive here for the rest of the run.
         //
-        // A lid this loop fails on is dropped rather than put back. It is still in
-        // tracked, so a retry would find its entity again, but there is nothing here
-        // to make the next attempt go any differently and no budget for retrying
-        // forever - the usual reason for a failure is an entity that died on its own
-        // between being queued and being handled, which never recovers.
+        // Nothing is dropped from entity_infos or tracked until the kill has actually
+        // been issued. Removing first and killing after left a copy that failed on
+        // the way there alive, immune and no longer in any map, so nothing would ever
+        // try to kill it again - the "stays alive forever" symptom, for one entity at
+        // a time.
         let pending_death_notify = std::mem::take(&mut self.pending_death_notify);
         let mut kill =
             |lid: Lid, wait_on_kill: bool, responsible: Option<PeerId>| -> eyre::Result<()> {
                 let responsible_entity = responsible
                     .and_then(|peer| ctx.player_map.get_by_left(&peer))
                     .copied();
-                self.entity_infos.remove(&lid);
                 let Some(entity) = self.tracked.get_by_left(&lid).copied() else {
+                    self.entity_infos.remove(&lid);
                     return Ok(());
                 };
                 let handle = entity_manager.handle(entity)?;
@@ -2274,14 +2360,19 @@ impl RemoteDiffModel {
                 {
                     inv.children(None).for_each(|e| e.kill())
                 }
-                if let Some(damage) =
-                    handle.try_get_first_component::<DamageModelComponent>(ComponentTag::None)
+                // Including disabled: the plain lookup filters on the cached enabled
+                // flag, so a damage model the game disabled or toggled behind the
+                // cache reads as absent, and this whole block used to be skipped for
+                // a copy that still very much needed killing.
+                let mut killed_by_flag = false;
+                if let Some(damage) = handle
+                    .try_get_first_component_including_disabled::<DamageModelComponent>(
+                        ComponentTag::None,
+                    )
                 {
-                    entity_manager.remove_ent(&entity);
                     entity
                         .children(Some("protection".into()))
                         .for_each(|ent| ent.kill());
-                    self.pending_remove.retain(|l| l != &lid);
                     if !wait_on_kill {
                         damage.set_wait_for_kill_flag_on_death(false)?;
                     }
@@ -2301,31 +2392,71 @@ impl RemoteDiffModel {
                     )?;
                     if wait_on_kill {
                         damage.set_kill_now(true)?;
-                    } else {
-                        entity.kill()
+                        killed_by_flag = true;
                     }
                 }
+                // Outside the damage model lookup. A copy without one has no kill
+                // flag to set and takes no damage, so leaving the kill in there is
+                // what let an entity with no damage model - or one whose damage model
+                // went missing - survive its owner's kill.
+                if !killed_by_flag {
+                    entity.kill()
+                }
+                entity_manager.remove_ent(&entity);
+                // tracked is deliberately left alone, as it always has been: it is
+                // what `remove_entities` sweeps on disconnect, and a kill flag that
+                // the game never gets round to acting on would otherwise leave the
+                // entity with nothing at all pointing at it.
+                self.entity_infos.remove(&lid);
+                self.pending_remove.retain(|l| l != &lid);
                 Ok(())
             };
+        let mut kill_retry = Vec::new();
         for (lid, wait_on_kill, responsible) in pending_death_notify {
             if let Err(err) = kill(lid, wait_on_kill, responsible) {
                 errors.push(err);
+                kill_retry.push((lid, wait_on_kill, responsible));
             }
         }
-        // Taken after the loop above, which drops entries from it as it kills. This
-        // loop takes the lid out of tracked before the part that can fail, so unlike
-        // the one above there is nothing left to put back in any case.
+        // A failed lid kept everything it had, so it goes back on the queue and is
+        // tried again next frame. Only while its entity is still standing, though:
+        // the usual cause of a failure is an entity that died on its own between
+        // being queued and being handled, and retrying that one forever costs a lua
+        // call a frame and can never succeed.
+        for (lid, wait_on_kill, responsible) in kill_retry {
+            if self.tracked.get_by_left(&lid).is_some_and(|e| e.is_alive()) {
+                self.pending_death_notify
+                    .push((lid, wait_on_kill, responsible));
+            } else {
+                self.entity_infos.remove(&lid);
+            }
+        }
+        // Taken after the loop above, which drops entries from it as it kills.
         let pending_remove = std::mem::take(&mut self.pending_remove);
         let mut remove = |lid: Lid| -> eyre::Result<()> {
-            self.entity_infos.remove(&lid);
-            if let Some((_, entity)) = self.tracked.remove_by_left(&lid) {
+            // Same ordering rule as above: the lid stays in tracked until the kill
+            // has been issued, so a failure here leaves something that will be tried
+            // again rather than an alive copy nothing knows about.
+            if let Some(entity) = self.tracked.get_by_left(&lid).copied() {
                 safe_entitykill(entity_manager.handle(entity)?);
+                self.tracked.remove_by_left(&lid);
             }
+            self.entity_infos.remove(&lid);
             Ok(())
         };
+        let mut remove_retry = Vec::new();
         for lid in pending_remove {
             if let Err(err) = remove(lid) {
                 errors.push(err);
+                remove_retry.push(lid);
+            }
+        }
+        for lid in remove_retry {
+            if self.tracked.get_by_left(&lid).is_some_and(|e| e.is_alive()) {
+                self.pending_remove.push(lid);
+            } else {
+                self.entity_infos.remove(&lid);
+                self.tracked.remove_by_left(&lid);
             }
         }
         errors.finish()
@@ -3020,4 +3151,48 @@ fn sun(handle: &mut EntityHandle, counter: u8) -> eyre::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RemoteDiffModel;
+
+    #[test]
+    fn apply_entities_budget_is_what_is_left_of_the_frame() {
+        assert_eq!(RemoteDiffModel::apply_entities_budget_us(0), 5000);
+        assert_eq!(RemoteDiffModel::apply_entities_budget_us(2000), 3000);
+    }
+
+    #[test]
+    fn apply_entities_budget_never_falls_below_the_floor() {
+        // The case that froze every remote health bar: the phases ahead of
+        // apply_entities had already spent the whole frame budget, so it got none
+        // and applied nothing at all.
+        assert_eq!(RemoteDiffModel::apply_entities_budget_us(5000), 1000);
+        assert_eq!(RemoteDiffModel::apply_entities_budget_us(50_000), 1000);
+        assert_eq!(RemoteDiffModel::apply_entities_budget_us(u128::MAX), 1000);
+    }
+
+    #[test]
+    fn round_robin_always_advances_by_at_least_one() {
+        // Over budget on entry, the entity at start is still given a full pass, so
+        // the first cheap index - which is where the next call resumes - is start+1.
+        let start = 7;
+        assert!(!RemoteDiffModel::is_cheap_pass(start, start, true));
+        let resume =
+            (0..20).find(|i| *i >= start && RemoteDiffModel::is_cheap_pass(*i, start, true));
+        assert_eq!(resume, Some(start + 1));
+    }
+
+    #[test]
+    fn indices_before_start_are_always_cheap() {
+        for i in 0..7 {
+            assert!(RemoteDiffModel::is_cheap_pass(i, 7, false));
+            assert!(RemoteDiffModel::is_cheap_pass(i, 7, true));
+        }
+        // With budget left, everything from start on gets a full pass.
+        for i in 7..20 {
+            assert!(!RemoteDiffModel::is_cheap_pass(i, 7, false));
+        }
+    }
 }

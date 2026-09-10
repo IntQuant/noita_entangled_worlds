@@ -794,11 +794,13 @@ impl Module for EntitySync {
                         // but by way of the batch, so that a send error an earlier
                         // peer collected is still the one returned to the caller
                         // rather than only being printed on the way out.
-                        let v = match remote_model
+                        let (v, _) = match remote_model
                             .apply_entities(
                                 ctx,
                                 *vi,
-                                start,
+                                RemoteDiffModel::apply_entities_budget_us(
+                                    start.elapsed().as_micros(),
+                                ),
                                 &mut self.entity_manager,
                                 &mut self.sprite_animations,
                             )
