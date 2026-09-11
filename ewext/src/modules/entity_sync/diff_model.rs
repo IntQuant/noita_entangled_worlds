@@ -362,21 +362,23 @@ impl LocalDiffModelTracker {
                 info.wand = None;
             };
         }
+        // Both component checks ask the game, not the cache. What they look for
+        // is switched on from Lua - sampo_pickup.lua starts Kolmi's fight and
+        // orb_07_pitcheck_a.lua arms the pit trigger - so the cache would keep
+        // reporting neither as started.
         info.is_enabled = (handle.has_tag(const { CachedTag::from_tag("boss_centipede") })
-            && handle
-                .try_get_first_component::<BossHealthBarComponent>(
-                    const { ComponentTag::from_str("disabled_at_start") },
-                )
+            && entity
+                .try_get_first_component::<BossHealthBarComponent>(Some(
+                    "disabled_at_start".into(),
+                ))?
                 .is_some())
             || handle
                 .get_var(const { VarName::from_str("active") })
                 .map(|var| var.value_int().unwrap_or(0) == 1)
                 .unwrap_or(false)
             || (handle.has_tag(const { CachedTag::from_tag("pitcheck_b") })
-                && handle
-                    .try_get_first_component::<LuaComponent>(
-                        const { ComponentTag::from_str("disabled") },
-                    )
+                && entity
+                    .try_get_first_component::<LuaComponent>(Some("disabled".into()))?
                     .is_some());
 
         info.limbs = entity
@@ -1007,9 +1009,10 @@ impl LocalDiffModel {
                 if handle.has_tag(const { CachedTag::from_tag("boss_centipede") }) {
                     self.enable_later.push(entity);
                 } else if handle.has_tag(const { CachedTag::from_tag("pitcheck_b") }) {
-                    handle
-                        .entity()
-                        .set_components_with_tag_enabled("disabled".into(), true)?;
+                    handle.set_components_with_tag_enabled(
+                        const { ComponentTag::from_str("disabled") },
+                        true,
+                    )?;
                 } else if let Some(var) = handle.get_var(const { VarName::from_str("active") }) {
                     var.set_value_int(1)?;
                     handle.set_components_with_tag_enabled(
