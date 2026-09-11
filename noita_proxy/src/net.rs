@@ -504,40 +504,43 @@ impl NetManager {
             {
                 warn!("Websocket flush not ok: {err}");
             }
-            let mut to_kick = self.kick_list.lock().unwrap();
-            let mut dont_kick = self.dont_kick.lock().unwrap();
-            if self.no_more_players.load(Ordering::Relaxed) {
-                if dont_kick.is_empty() {
-                    dont_kick.extend(self.peer.iter_peer_ids())
+            // Scoped so the locks are released before handling network events, which may kick.
+            {
+                let mut to_kick = self.kick_list.lock().unwrap();
+                let mut dont_kick = self.dont_kick.lock().unwrap();
+                if self.no_more_players.load(Ordering::Relaxed) {
+                    if dont_kick.is_empty() {
+                        dont_kick.extend(self.peer.iter_peer_ids())
+                    } else {
+                        for peer in self.peer.iter_peer_ids() {
+                            if !dont_kick.contains(&peer) {
+                                to_kick.push(peer);
+                            }
+                        }
+                    }
                 } else {
-                    for peer in self.peer.iter_peer_ids() {
-                        if !dont_kick.contains(&peer) {
-                            to_kick.push(peer);
+                    dont_kick.clear()
+                }
+                {
+                    let list = self.ban_list.lock().unwrap();
+                    for peer in list.iter() {
+                        if self.peer.iter_peer_ids().contains(peer) {
+                            to_kick.push(*peer)
                         }
                     }
                 }
-            } else {
-                dont_kick.clear()
-            }
-            {
-                let list = self.ban_list.lock().unwrap();
-                for peer in list.iter() {
-                    if self.peer.iter_peer_ids().contains(peer) {
-                        to_kick.push(*peer)
-                    }
+                for peer in to_kick.iter() {
+                    info!("player kicked: {}", peer);
+                    state.try_ms_write(&ws_encode_proxy("leave", peer.as_hex()));
+                    state.world.handle_peer_left(*peer);
+                    self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
+                    self.broadcast(
+                        &NetMsg::PeerDisconnected { id: *peer },
+                        Reliability::Reliable,
+                    );
                 }
+                to_kick.clear();
             }
-            for peer in to_kick.iter() {
-                info!("player kicked: {}", peer);
-                state.try_ms_write(&ws_encode_proxy("leave", peer.as_hex()));
-                state.world.handle_peer_left(*peer);
-                self.send(*peer, &NetMsg::Kick, Reliability::Reliable);
-                self.broadcast(
-                    &NetMsg::PeerDisconnected { id: *peer },
-                    Reliability::Reliable,
-                );
-            }
-            to_kick.clear();
             for net_event in self.peer.recv() {
                 self.clone().handle_network_event(
                     &mut state,
@@ -737,6 +740,19 @@ impl NetManager {
                 )));
                 if id == self.peer.host_id() {
                     self.back_out.store(true, Ordering::Relaxed)
+                }
+            }
+            omni::OmniNetworkEvent::SendBacklogStuck(id) => {
+                if self.is_host() {
+                    error!(
+                        "Kicking {id}: our reliable messages to them have been backed up for too long"
+                    );
+                    self.kick_list.lock().unwrap().push(id);
+                } else {
+                    error!(
+                        "Leaving the lobby: our reliable messages to {id} have been backed up for too long"
+                    );
+                    self.back_out.store(true, Ordering::Relaxed);
                 }
             }
             omni::OmniNetworkEvent::Message { src, data } => {

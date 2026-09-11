@@ -75,7 +75,12 @@ impl OmniPeerId {
 pub enum OmniNetworkEvent {
     PeerConnected(OmniPeerId),
     PeerDisconnected(OmniPeerId),
-    Message { src: OmniPeerId, data: Vec<u8> },
+    Message {
+        src: OmniPeerId,
+        data: Vec<u8>,
+    },
+    /// Reliable messages to this peer have been backlogged for too long. Steam only.
+    SendBacklogStuck(OmniPeerId),
 }
 
 impl From<tangled::NetworkEvent> for OmniNetworkEvent {
@@ -110,7 +115,10 @@ impl PeerVariant {
                 p.send_message(peer.into(), &msg, reliability)
                     .map_err(|e| match e {
                         SteamError::InvalidSteamID => tangled::NetError::UnknownPeer,
-                        SteamError::Ignored => tangled::NetError::Dropped,
+                        // Only unreliable sends get LimitExceeded; reliable ones are backlogged.
+                        SteamError::Ignored | SteamError::LimitExceeded => {
+                            tangled::NetError::Dropped
+                        }
                         SteamError::InvalidParameter => tangled::NetError::MessageTooLong,
                         SteamError::NoConnection | SteamError::InvalidState => {
                             tangled::NetError::Disconnected
