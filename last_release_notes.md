@@ -1,13 +1,23 @@
-## Noita Entangled Worlds v1.6.4
+## Noita Entangled Worlds v1.6.5
+
+Many world sync, entity sync correctness and performance fixes by @rdeaton, including:
+ - Kolmi-related bugs
+ - Enemies having abnormally high health
+ - Wands and spells falling through the floor in HMs
+ - and many others
 
 ## Accepted pull requests
 
-- ported match made by mirashii that fixes the corruption of health values by @k-Knight in #505 (fix for high health enemies)
-- feat(proxy): allow domain names in direct connect by @Stella-sea in #503
-- feat(settings): add revive_on_drop option for heart statue mode with localization by @dest4590 in #499
-- update Simplified Chinese translation by @LuoTianOrange in #497
-- Noita launcher update 2 by @Multirious in #494
-
+- Add queueing to the steam reliable network channel and kick clients who are not catching up by @rdeaton in #515
+- Version save state directory instead of migration by @rdeaton in #514
+- [08/08] Rust world decode by @rdeaton in #513
+- [07/08] Enable new tests in CI by @rdeaton in #512
+- [06/08] Cleanup dead code by @rdeaton in #511
+- [05/08] Assorted entity syncing fixes by @rdeaton in #510
+- [04/08] Entity Cache and syncing changes by @rdeaton in #509
+- [03/08] Mod side performance fixes around lukki, small correctness issue by @rdeaton in #508
+- [02/08] Hot-loop performance improvements from profiling by @rdeaton in #507
+- [01/08] Clean up some input handling by @rdeaton in #506
 ## Installation
 
 
