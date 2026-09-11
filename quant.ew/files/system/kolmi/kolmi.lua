@@ -94,12 +94,40 @@ function rpc.kolmi_shield(is_on, orbcount)
     switch_shield(kolmi, is_on)
 end
 
--- Every peer only records the pickup. Starting the fight is up to whoever owns
--- Kolmi, in module.on_world_update below.
+-- The pickup's sound, music and sparkle from the base sampo_pickup.lua.
+local function play_pickup(x, y)
+    GameTriggerMusicFadeOutAndDequeueAll(10.0)
+    GamePlaySound("data/audio/Desktop/event_cues.bank", "event_cues/sampo_pick/create", x, y)
+    GameTriggerMusicEvent("music/boss_arena/battle", false, x, y)
+    EntityLoad("data/entities/particles/image_emitters/chest_effect.xml", x, y)
+end
+
+-- A pickup as it happens. Every peer plays it once and remembers it; starting the
+-- fight is up to whoever owns Kolmi, in module.on_world_update below.
 rpc.opts_reliable()
 rpc.opts_everywhere()
-function rpc.sampo_picked()
+function rpc.sampo_picked(x, y)
+    if GameHasFlagRun("ew_sampo_picked") then
+        return
+    end
     GameAddFlagRun("ew_sampo_picked")
+    play_pickup(x, y)
+end
+
+-- For a peer that wasn't connected when the sampo was picked up. Only remembered,
+-- not played: the moment has passed.
+rpc.opts_reliable()
+function rpc.sampo_was_picked()
+    GameAddFlagRun("ew_sampo_picked")
+end
+
+-- Runs whenever a peer connects, so a late joiner - who may go on to own Kolmi -
+-- hears about the pickup from anyone who saw it. The flag survives a reload, so a
+-- reloaded peer keeps passing it on too.
+function module.on_should_send_updates()
+    if GameHasFlagRun("ew_sampo_picked") then
+        rpc.sampo_was_picked()
+    end
 end
 
 -- Only a Kolmi entity sync has given to this peer. An untracked one has no owner
@@ -113,6 +141,28 @@ local function is_mine(ent)
     return false
 end
 
+-- The fight half of the base sampo_pickup.lua, for Kolmi alone - rpc.sampo_picked
+-- already played the rest. For a Kolmi whose fight had started before it changed
+-- owner, enable_later in ewext switches the same components back on instead.
+local function start_fight(kolmi, reference)
+    local x, y = EntityGetTransform(reference)
+    -- Only on the owner: its boss_centipede_update.lua is what sets it back to 0.
+    GlobalsSetValue("FINAL_BOSS_ACTIVE", "1")
+    EntitySetComponentsWithTagEnabled(kolmi, "disabled_at_start", true)
+    EntitySetComponentsWithTagEnabled(kolmi, "enabled_at_start", false)
+    PhysicsSetStatic(kolmi, false)
+    EntityAddTag(kolmi, "boss_centipede_active")
+    for _, child in ipairs(EntityGetAllChildren(kolmi) or {}) do
+        if EntityHasTag(child, "protection") then
+            EntityKill(child)
+        end
+    end
+    EntityLoad("data/entities/animals/boss_centipede/loose_lavaceiling.xml", x - 235, y - 73)
+    EntityLoad("data/entities/animals/boss_centipede/loose_lavaceiling.xml", x + 264, y - 50)
+    EntityLoad("data/entities/animals/boss_centipede/loose_lavabridge.xml", x - 235, y + 282)
+    EntityLoad("data/entities/animals/boss_centipede/loose_lavabridge.xml", x + 257, y + 262)
+end
+
 -- Kolmi's owner is the only peer whose Kolmi really fights; entity sync starts
 -- every other copy once the owner reports the fight has begun. Checked every
 -- frame rather than once when the pickup arrives, so a Kolmi that changes owner
@@ -121,18 +171,14 @@ function module.on_world_update()
     if not GameHasFlagRun("ew_sampo_picked") then
         return
     end
+    -- The lava pieces are placed relative to the arena's reference point.
+    local reference = EntityGetWithTag("reference")[1]
+    if reference == nil then
+        return
+    end
     for _, kolmi in ipairs(EntityGetWithTag("boss_centipede")) do
-        -- The base script gives up before tagging Kolmi if the arena's reference
-        -- point isn't loaded, and would then replay its sound every frame.
-        if
-            not EntityHasTag(kolmi, "boss_centipede_active")
-            and is_mine(kolmi)
-            and #EntityGetWithTag("reference") > 0
-        then
-            dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
-            -- The picked-up item only decides where the pickup sound and effect
-            -- play, and this peer's copy of the sampo may already be gone.
-            item_pickup(kolmi, nil, nil, true)
+        if not EntityHasTag(kolmi, "boss_centipede_active") and is_mine(kolmi) then
+            start_fight(kolmi, reference)
             local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
             local orbcount = GameGetOrbCountThisRun() + newgame_n
             rpc.kolmi_shield(true, orbcount)
