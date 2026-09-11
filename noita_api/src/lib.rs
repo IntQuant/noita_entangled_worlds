@@ -1008,8 +1008,9 @@ pub enum CachedComponent {
     AudioComponent,
     AbilityComponent,
     StatusEffectDataComponent,
+    SimplePhysicsComponent,
 }
-const COMP_LEN: usize = 32;
+const COMP_LEN: usize = 33;
 impl CachedComponent {
     const fn from_component<C: Component>() -> Self {
         match C::NAME_STR.as_bytes() {
@@ -1045,6 +1046,7 @@ impl CachedComponent {
             b"AudioComponent" => Self::AudioComponent,
             b"AbilityComponent" => Self::AbilityComponent,
             b"StatusEffectDataComponent" => Self::StatusEffectDataComponent,
+            b"SimplePhysicsComponent" => Self::SimplePhysicsComponent,
             _ => unreachable!(),
         }
     }
@@ -1082,6 +1084,7 @@ impl CachedComponent {
             "AudioComponent" => Self::AudioComponent,
             "AbilityComponent" => Self::AbilityComponent,
             "StatusEffectDataComponent" => Self::StatusEffectDataComponent,
+            "SimplePhysicsComponent" => Self::SimplePhysicsComponent,
             _ => return None,
         })
     }
@@ -1098,6 +1101,7 @@ pub enum VarName {
     EwGidLid,
     Active,
     EwHasStarted,
+    EwNoGround,
     Unknown,
 }
 impl VarName {
@@ -1112,6 +1116,7 @@ impl VarName {
             b"ew_gid_lid" => Self::EwGidLid,
             b"active" => Self::Active,
             b"ew_has_started" => Self::EwHasStarted,
+            b"ew_no_ground" => Self::EwNoGround,
             _ => unreachable!(),
         }
     }
@@ -1126,6 +1131,7 @@ impl VarName {
             b"ew_gid_lid" => Self::EwGidLid,
             b"active" => Self::Active,
             b"ew_has_started" => Self::EwHasStarted,
+            b"ew_no_ground" => Self::EwNoGround,
             _ if s.is_empty() => Self::None,
             _ => Self::Unknown,
         }
@@ -1142,6 +1148,7 @@ impl VarName {
             Self::EwGidLid => "ew_gid_lid",
             Self::Active => "active",
             Self::EwHasStarted => "ew_has_started",
+            Self::EwNoGround => "ew_no_ground",
             Self::Unknown => unreachable!(),
         }
     }
@@ -1253,24 +1260,35 @@ impl ComponentData {
         }
     }
     fn new_with_name(id: ComponentID, name: VarName) -> Self {
-        let mut c = Self::new(id, true);
+        // `false` because the caller already knows the name: asking Noita for it
+        // is a lua call whose answer is overwritten on the next line, and on a
+        // freshly added component that answer is empty anyway.
+        let mut c = Self::new(id, false);
         c.name = name;
         c
     }
 }
 const COMP_VEC_LEN: usize = 1;
-#[derive(Default)]
 struct EntityData {
     tags: Tags<u16>, //[bool; TAG_LEN],
     phys_init: bool,
     components: [SmallVec<[ComponentData; COMP_VEC_LEN]>; COMP_LEN],
+}
+// Arrays only implement Default up to 32 elements, so this can't be derived.
+impl Default for EntityData {
+    fn default() -> Self {
+        Self {
+            tags: Tags(0),
+            phys_init: false,
+            components: std::array::from_fn(|_| SmallVec::new()),
+        }
+    }
 }
 pub struct EntityManager {
     cache: FxHashMap<EntityID, EntityData>,
     current_entity: EntityID,
     current_data: EntityData,
     has_ran: bool,
-    pub files: Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
     frame_num: i32,
     camera_pos: (f64, f64),
     bypass_cache: bool,
@@ -1282,7 +1300,6 @@ impl Default for EntityManager {
             current_entity: EntityID(NonZeroIsize::new(-1).unwrap()),
             current_data: Default::default(),
             has_ran: false,
-            files: Some(FxHashMap::with_capacity_and_hasher(512, FxBuildHasher)),
             frame_num: -1,
             camera_pos: (0.0, 0.0),
             bypass_cache: false,
@@ -1370,71 +1387,111 @@ impl EntityManager {
     pub fn camera_pos(&self) -> (f64, f64) {
         self.camera_pos
     }
-    pub fn set_current_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
+    fn set_current_entity(&mut self, ent: EntityID) -> eyre::Result<()> {
         if self.bypass_cache {
             self.current_entity = ent;
             return Ok(());
         }
-        if self.current_entity == ent {
+        // `has_ran` matters here: after `clear_current`, `current_entity` still
+        // names the dropped entity, so an early return would keep serving its
+        // stale `current_data`.
+        if self.current_entity == ent && self.has_ran {
             return Ok(());
         }
         if self.has_ran {
-            let old_ent = std::mem::replace(&mut self.current_entity, ent);
+            // Build the new data *before* touching any field. On failure the
+            // manager must stay consistent - a half-applied switch leaves
+            // `current_entity` pointing at `ent` while `current_data` still
+            // describes the old one, and the next switch caches that mismatch
+            // under `ent` for good.
             let data = if let Some(data) = self.cache.remove(&ent) {
                 data
             } else {
                 EntityData::new(ent)?
             };
+            let old_ent = std::mem::replace(&mut self.current_entity, ent);
             let old_data = std::mem::replace(&mut self.current_data, data);
             self.cache.insert(old_ent, old_data);
         } else {
+            let data = EntityData::new(ent)?;
             self.current_entity = ent;
-            self.current_data = EntityData::new(ent)?;
+            self.current_data = data;
             self.has_ran = true;
         }
         Ok(())
     }
-    #[inline]
-    pub fn entity(&self) -> EntityID {
-        self.current_entity
+    /// Everything that reads or changes a single entity goes through the handle
+    /// this returns, so the entity a call is about is always named where the
+    /// handle is taken. The handle borrows the manager, so nothing can switch
+    /// to another entity while it is alive.
+    pub fn handle(&mut self, ent: EntityID) -> eyre::Result<EntityHandle<'_>> {
+        self.set_current_entity(ent)?;
+        Ok(EntityHandle { manager: self })
     }
-    pub fn remove_current(&mut self) {
+    /// Drops the snapshot for the current entity.
+    ///
+    /// The snapshot has to be emptied rather than just marked invalid: no
+    /// accessor consults `has_ran`, and every one of them would otherwise keep
+    /// answering from a dead entity's components.
+    fn clear_current(&mut self) {
         self.has_ran = false;
+        self.current_data = EntityData::default();
     }
     pub fn remove_ent(&mut self, ent: &EntityID) {
         if &self.current_entity == ent || self.bypass_cache {
-            self.has_ran = false;
+            self.clear_current();
         } else {
             self.cache.remove(ent);
         }
     }
+}
+/// One entity, read and changed through the manager's snapshot of it.
+pub struct EntityHandle<'a> {
+    manager: &'a mut EntityManager,
+}
+impl EntityHandle<'_> {
+    #[inline]
+    pub fn entity(&self) -> EntityID {
+        self.manager.current_entity
+    }
+    /// Drops the manager's snapshot of this entity, for when it is being
+    /// killed. Consumes the handle so nothing can read the emptied snapshot.
+    pub fn forget(self) {
+        self.manager.clear_current();
+    }
+    pub fn frame_num(&self) -> i32 {
+        self.manager.frame_num
+    }
+    pub fn camera_pos(&self) -> (f64, f64) {
+        self.manager.camera_pos
+    }
     pub fn add_tag(&mut self, tag: CachedTag) -> eyre::Result<()> {
-        self.current_entity.add_tag(tag.to_tag())?;
-        if self.bypass_cache {
+        self.manager.current_entity.add_tag(tag.to_tag())?;
+        if self.manager.bypass_cache {
             return Ok(());
         }
-        self.current_data.add_tag(tag);
+        self.manager.current_data.add_tag(tag);
         Ok(())
     }
     pub fn has_tag(&self, tag: CachedTag) -> bool {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().has_tag(tag.to_tag());
         }
-        self.current_data.has_tag(tag)
+        self.manager.current_data.has_tag(tag)
     }
     pub fn remove_tag(&mut self, tag: CachedTag) -> eyre::Result<()> {
-        self.current_entity.remove_tag(tag.to_tag())?;
-        if self.bypass_cache {
+        self.manager.current_entity.remove_tag(tag.to_tag())?;
+        if self.manager.bypass_cache {
             return Ok(());
         }
-        self.current_data.remove_tag(tag);
+        self.manager.current_data.remove_tag(tag);
         Ok(())
     }
     pub fn check_all_phys_init(&mut self) -> eyre::Result<bool> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().check_all_phys_init();
         }
-        if self.current_data.phys_init {
+        if self.manager.current_data.phys_init {
             return Ok(true);
         }
         for phys_c in self.iter_mut_all_components_of_type::<PhysicsBody2Component>() {
@@ -1442,11 +1499,11 @@ impl EntityManager {
                 return Ok(false);
             }
         }
-        self.current_data.phys_init = true;
+        self.manager.current_data.phys_init = true;
         Ok(true)
     }
     pub fn try_get_first_component<C: Component>(&self, tag: ComponentTag) -> Option<C> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self
                 .entity()
                 .try_get_first_component::<C>(if matches!(tag, ComponentTag::None) {
@@ -1456,7 +1513,7 @@ impl EntityManager {
                 })
                 .unwrap_or(None);
         }
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
             .map(|com| C::from(com.id))
@@ -1465,7 +1522,7 @@ impl EntityManager {
         &self,
         tag: ComponentTag,
     ) -> Option<C> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self
                 .entity()
                 .try_get_first_component_including_disabled::<C>(
@@ -1477,13 +1534,13 @@ impl EntityManager {
                 )
                 .unwrap_or(None);
         }
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
             .map(|c| C::from(c.id))
     }
     pub fn get_first_component<C: Component>(&self, tag: ComponentTag) -> eyre::Result<C> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self
                 .entity()
                 .get_first_component::<C>(if matches!(tag, ComponentTag::None) {
@@ -1492,7 +1549,7 @@ impl EntityManager {
                     Some(tag.to_str().into())
                 });
         }
-        if let Some(coms) = self.current_data.components
+        if let Some(coms) = self.manager.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter()
         .find(|c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
@@ -1507,7 +1564,7 @@ impl EntityManager {
         &self,
         tag: ComponentTag,
     ) -> eyre::Result<C> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().get_first_component_including_disabled::<C>(
                 if matches!(tag, ComponentTag::None) {
                     None
@@ -1516,7 +1573,7 @@ impl EntityManager {
                 },
             );
         }
-        if let Some(coms) = self.current_data.components
+        if let Some(coms) = self.manager.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter()
         .find(|c| tag == ComponentTag::None || c.tags.get(tag as u16))
@@ -1530,7 +1587,7 @@ impl EntityManager {
         &mut self,
         tags: ComponentTag,
     ) -> eyre::Result<bool> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().remove_all_components_of_type::<C>(
                 if matches!(tags, ComponentTag::None) {
                     None
@@ -1539,26 +1596,35 @@ impl EntityManager {
                 },
             );
         }
+        let idx = const { CachedComponent::from_component::<C>() as usize };
         let mut is_some = false;
-        let vec = std::mem::take(
-            &mut self.current_data.components[const { CachedComponent::from_component::<C>() as usize }],
-        );
+        let mut err = None;
+        let vec = std::mem::take(&mut self.manager.current_data.components[idx]);
         for com in vec.into_iter() {
-            if tags == ComponentTag::None || com.tags.get(tags as u16) {
-                is_some = true;
-                self.current_entity.remove_component(com.id)?;
-            } else {
-                self.current_data.components
-                    [const { CachedComponent::from_component::<C>() as usize }].push(com);
+            // Once a removal has failed, stop removing but keep every entry:
+            // the components are still on the entity, and dropping them from
+            // the snapshot only makes the cache lie about a smaller entity.
+            if err.is_none() && (tags == ComponentTag::None || com.tags.get(tags as u16)) {
+                match self.manager.current_entity.remove_component(com.id) {
+                    Ok(()) => {
+                        is_some = true;
+                        continue;
+                    }
+                    Err(e) => err = Some(e),
+                }
             }
+            self.manager.current_data.components[idx].push(com);
         }
-        Ok(is_some)
+        match err {
+            Some(e) => Err(e),
+            None => Ok(is_some),
+        }
     }
     pub fn iter_all_components_of_type<C: Component>(
         &self,
         tag: ComponentTag,
-    ) -> impl Iterator<Item = C> {
-        if self.bypass_cache {
+    ) -> impl Iterator<Item = C> + use<C> {
+        if self.manager.bypass_cache {
             return self
                 .entity()
                 .iter_all_components_of_type::<C>(if matches!(tag, ComponentTag::None) {
@@ -1570,7 +1636,7 @@ impl EntityManager {
                 .unwrap_or_default()
                 .into_iter();
         }
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .filter(move |c| c.enabled && (tag == ComponentTag::None || c.tags.get(tag as u16)))
             .map(|c| C::from(c.id))
@@ -1580,15 +1646,15 @@ impl EntityManager {
     fn iter_mut_all_components_of_type<C: Component>(
         &mut self,
     ) -> impl Iterator<Item = &mut ComponentData> {
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter_mut()
             .filter(|c| c.enabled)
     }
     pub fn iter_all_components_of_type_including_disabled<C: Component>(
         &self,
         tag: ComponentTag,
-    ) -> impl Iterator<Item = C> {
-        if self.bypass_cache {
+    ) -> impl Iterator<Item = C> + use<C> {
+        if self.manager.bypass_cache {
             return self
                 .entity()
                 .iter_all_components_of_type_including_disabled::<C>(
@@ -1602,7 +1668,7 @@ impl EntityManager {
                 .unwrap_or_default()
                 .into_iter();
         }
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
             .filter(move |c| tag == ComponentTag::None || c.tags.get(tag as u16))
             .map(|c| C::from(c.id))
@@ -1612,15 +1678,15 @@ impl EntityManager {
     fn iter_all_components_of_type_including_disabled_raw<C: Component>(
         &self,
     ) -> impl Iterator<Item = &ComponentData> {
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .iter()
     }
     pub fn add_component<C: Component>(&mut self) -> eyre::Result<C> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().add_component();
         }
-        let c = self.current_entity.add_component::<C>()?;
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        let c = self.manager.current_entity.add_component::<C>()?;
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .push(ComponentData::new(
                 *c,
                 C::NAME_STR == "VariableStorageComponent",
@@ -1628,13 +1694,13 @@ impl EntityManager {
         Ok(c)
     }
     fn add_component_var<C: Component>(&mut self, name: VarName) -> eyre::Result<C> {
-        let c = self.current_entity.add_component::<C>()?;
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        let c = self.manager.current_entity.add_component::<C>()?;
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .push(ComponentData::new_with_name(*c, name));
         Ok(c)
     }
     pub fn get_var(&self, name: VarName) -> Option<VariableStorageComponent> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().get_var(name.to_str());
         }
         let mut i =
@@ -1648,7 +1714,7 @@ impl EntityManager {
         })
     }
     pub fn get_var_unknown(&self, name: &str) -> Option<VariableStorageComponent> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().get_var(name);
         }
         let mut i =
@@ -1667,7 +1733,7 @@ impl EntityManager {
         })
     }
     pub fn get_var_or_default(&mut self, name: VarName) -> eyre::Result<VariableStorageComponent> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().get_var_or_default(name.to_str());
         }
         if let Some(var) = self.get_var(name) {
@@ -1682,7 +1748,7 @@ impl EntityManager {
         &mut self,
         name: &str,
     ) -> eyre::Result<VariableStorageComponent> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().get_var_or_default(name);
         }
         if let Some(var) = self.get_var_unknown(name) {
@@ -1694,74 +1760,128 @@ impl EntityManager {
         }
     }
     pub fn add_lua_init_component<C: Component>(&mut self, file: &str) -> eyre::Result<C> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().add_lua_init_component(file);
         }
-        let c = self.current_entity.add_lua_init_component::<C>(file)?;
-        self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
+        let c = self
+            .manager
+            .current_entity
+            .add_lua_init_component::<C>(file)?;
+        self.manager.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
             .push(ComponentData::new(*c, false));
         Ok(c)
+    }
+    /// Tags a component of this entity, keeping the snapshot in step.
+    ///
+    /// Tagging through the raw `ComponentID` instead leaves the snapshot's tag
+    /// bitset as it was when the component was added - empty, for one added
+    /// through this manager - so lookups by that tag never find it again and
+    /// callers that add-if-missing add forever.
+    pub fn add_component_tag<C: Component>(
+        &mut self,
+        com: C,
+        tag: ComponentTag,
+    ) -> eyre::Result<()> {
+        com.add_tag(tag.to_str())?;
+        if self.manager.bypass_cache {
+            return Ok(());
+        }
+        let id = *com;
+        if let Some(c) = self.manager.current_data.components
+            [const { CachedComponent::from_component::<C>() as usize }]
+        .iter_mut()
+        .find(|c| c.id == id)
+        {
+            c.tags.set(tag as u16);
+        }
+        Ok(())
+    }
+    /// Adds a named `VariableStorageComponent` to this entity, keeping the
+    /// snapshot in step.
+    ///
+    /// Naming it through the raw `ComponentID` afterwards instead leaves the
+    /// snapshot's name as it was when the component was added - `VarName::None`,
+    /// since a component is unnamed until Noita is told otherwise - so `get_var`
+    /// never finds it again and callers that remove-then-add pile up duplicates.
+    ///
+    /// Only for names `VarName` knows: `VarName::Unknown` has no string to write -
+    /// that is what `get_var_or_default_unknown` is for - and `VarName::None` would
+    /// name the component the empty string, which is what it is called already.
+    pub fn add_component_with_var_name(
+        &mut self,
+        name: VarName,
+    ) -> eyre::Result<VariableStorageComponent> {
+        let var = if self.manager.bypass_cache {
+            self.entity().add_component::<VariableStorageComponent>()?
+        } else {
+            self.add_component_var::<VariableStorageComponent>(name)?
+        };
+        var.set_name(name.to_str().into())?;
+        Ok(var)
     }
     pub fn set_components_with_tag_enabled(
         &mut self,
         tag: ComponentTag,
         enabled: bool,
     ) -> eyre::Result<()> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self
                 .entity()
                 .set_components_with_tag_enabled(tag.to_str().into(), enabled);
         }
-        let mut some = false;
-        for c in self.current_data.components.iter_mut().flatten() {
+        for c in self.manager.current_data.components.iter_mut().flatten() {
             if c.tags.get(tag as u16) {
-                some = true;
                 c.enabled = enabled
             }
         }
-        if some {
-            self.current_entity
-                .set_components_with_tag_enabled(tag.to_str().into(), enabled)?
-        }
-        Ok(())
+        // Unconditionally, not just when the snapshot knew about a tagged
+        // component. Only 32 component types are cached at all, so "the
+        // snapshot has none" is the normal case for most tags, and gating on it
+        // turned this into a silent no-op that still returned Ok.
+        self.manager
+            .current_entity
+            .set_components_with_tag_enabled(tag.to_str().into(), enabled)
     }
     pub fn set_component_enabled<C: Component>(
         &mut self,
         com: C,
         enabled: bool,
     ) -> eyre::Result<()> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().set_component_enabled(*com, enabled);
         }
         let id = *com;
-        if let Some(n) = self.current_data.components
+        if let Some(n) = self.manager.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter_mut()
         .find(|c| c.id == id)
             && n.enabled != enabled
         {
             n.enabled = enabled;
-            self.current_entity.set_component_enabled(id, enabled)?;
+            self.manager
+                .current_entity
+                .set_component_enabled(id, enabled)?;
         }
         Ok(())
     }
     pub fn remove_component<C: Component>(&mut self, component: C) -> eyre::Result<()> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().remove_component(*component);
         }
         let id = *component;
-        if let Some(n) = self.current_data.components
+        if let Some(n) = self.manager.current_data.components
             [const { CachedComponent::from_component::<C>() as usize }]
         .iter()
         .position(|c| c.id == id)
         {
-            self.current_data.components[const { CachedComponent::from_component::<C>() as usize }]
-                .remove(n);
+            self.manager.current_data.components
+                [const { CachedComponent::from_component::<C>() as usize }]
+            .remove(n);
         }
-        self.current_entity.remove_component(id)
+        self.manager.current_entity.remove_component(id)
     }
     pub fn get_current_stains(&self) -> eyre::Result<u64> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().get_current_stains();
         }
         let mut current = 0;
@@ -1777,7 +1897,7 @@ impl EntityManager {
         Ok(current)
     }
     pub fn set_current_stains(&self, current_stains: u64) -> eyre::Result<()> {
-        if self.bypass_cache {
+        if self.manager.bypass_cache {
             return self.entity().set_current_stains(current_stains);
         }
         if let Some(status) =
@@ -1785,25 +1905,10 @@ impl EntityManager {
         {
             for ((i, v), id) in status.stain_effects()?.enumerate().zip(TO_ID.iter()) {
                 if v >= 0.15 && current_stains & (1 << i) == 0 {
-                    self.current_entity.remove_stain(id)?
+                    self.manager.current_entity.remove_stain(id)?
                 }
             }
         }
         Ok(())
-    }
-}
-pub fn get_file<'a>(
-    files: &'a mut Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
-    file: Cow<'static, str>,
-) -> eyre::Result<&'a [String]> {
-    match files.as_mut().unwrap().entry(file) {
-        std::collections::hash_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-            let content = raw::mod_text_file_get_content(entry.key().clone())?;
-            let mut split = content.split("name=\"");
-            split.next();
-            let split = split.map(|piece| piece.split_once("\"").unwrap().0.to_string());
-            Ok(entry.insert(split.collect::<Vec<String>>()))
-        }
     }
 }

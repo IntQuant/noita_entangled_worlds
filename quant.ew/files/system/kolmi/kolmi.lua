@@ -94,14 +94,45 @@ function rpc.kolmi_shield(is_on, orbcount)
     switch_shield(kolmi, is_on)
 end
 
+-- Every peer only records the pickup. Starting the fight is up to whoever owns
+-- Kolmi, in module.on_world_update below.
 rpc.opts_reliable()
-function rpc.spawn_kolmi(gid)
+rpc.opts_everywhere()
+function rpc.sampo_picked()
+    GameAddFlagRun("ew_sampo_picked")
+end
+
+-- Only a Kolmi entity sync has given to this peer. An untracked one has no owner
+-- yet, and a remote copy is overwritten by its owner every frame.
+local function is_mine(ent)
+    for _, v in ipairs(EntityGetComponentIncludingDisabled(ent, "VariableStorageComponent") or {}) do
+        if ComponentGetValue2(v, "name") == "ew_gid_lid" then
+            return ComponentGetValue2(v, "value_bool")
+        end
+    end
+    return false
+end
+
+-- Kolmi's owner is the only peer whose Kolmi really fights; entity sync starts
+-- every other copy once the owner reports the fight has begun. Checked every
+-- frame rather than once when the pickup arrives, so a Kolmi that changes owner
+-- before its fight starts is started by the new owner instead.
+function module.on_world_update()
     if not GameHasFlagRun("ew_sampo_picked") then
-        local item_id = ewext.find_by_gid(gid)
-        if item_id ~= nil and util.do_i_own(item_id) then
-            GameAddFlagRun("ew_sampo_picked")
+        return
+    end
+    for _, kolmi in ipairs(EntityGetWithTag("boss_centipede")) do
+        -- The base script gives up before tagging Kolmi if the arena's reference
+        -- point isn't loaded, and would then replay its sound every frame.
+        if
+            not EntityHasTag(kolmi, "boss_centipede_active")
+            and is_mine(kolmi)
+            and #EntityGetWithTag("reference") > 0
+        then
             dofile("data/entities/animals/boss_centipede/sampo_pickup.lua")
-            item_pickup(item_id, nil, nil, true)
+            -- The picked-up item only decides where the pickup sound and effect
+            -- play, and this peer's copy of the sampo may already be gone.
+            item_pickup(kolmi, nil, nil, true)
             local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
             local orbcount = GameGetOrbCountThisRun() + newgame_n
             rpc.kolmi_shield(true, orbcount)
@@ -132,7 +163,7 @@ util.add_cross_call("ew_kolmi_anim", rpc.kolmi_anim)
 
 util.add_cross_call("ew_kolmi_shield", rpc.kolmi_shield)
 
-util.add_cross_call("ew_spawn_kolmi", rpc.spawn_kolmi)
+util.add_cross_call("ew_sampo_picked", rpc.sampo_picked)
 
 --[[ctx.cap.item_sync.register_pickup_handler(function(item_id)
     if ctx.is_host and EntityHasTag(item_id, "this_is_sampo") then

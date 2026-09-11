@@ -21,9 +21,11 @@ use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
     des::{Gid, InterestRequest, ProjectileFired, RemoteDes},
 };
+use sprite_animations::SpriteAnimations;
 use std::sync::{LazyLock, Mutex};
 mod diff_model;
 mod interest;
+mod sprite_animations;
 
 static ENTITY_EXCLUDES: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
     let mut hs = FxHashSet::default();
@@ -58,6 +60,7 @@ pub(crate) struct EntitySync {
     peer_order: Vec<PeerId>,
     log_performance: bool,
     entity_manager: EntityManager,
+    sprite_animations: SpriteAnimations,
 }
 impl EntitySync {
     pub(crate) fn set_perf(&mut self, perf: bool) {
@@ -113,6 +116,7 @@ impl Default for EntitySync {
             peer_order: Vec::new(),
             log_performance: false,
             entity_manager: EntityManager::default(),
+            sprite_animations: SpriteAnimations::default(),
         }
     }
 }
@@ -155,7 +159,7 @@ impl EntitySync {
         } else {
             Ok(())
         };
-        if !self.local_diff_model.update_buffer.is_empty() {
+        let err2 = if !self.local_diff_model.update_buffer.is_empty() {
             let res = std::mem::take(&mut self.local_diff_model.update_buffer);
             let (RemoteDes::EntityUpdate(diff), err) = send_remotedes_ret(
                 ctx,
@@ -171,9 +175,15 @@ impl EntitySync {
                 unreachable!()
             };
             self.local_diff_model.update_buffer = diff;
-            err1?;
-            err?;
-        }
+            err
+        } else {
+            Ok(())
+        };
+        // Both sends have to be attempted before either error escapes - each one
+        // puts back the buffer it took, so bailing out early would drop the
+        // other buffer's diffs on the floor.
+        err1?;
+        err2?;
         Ok(())
     }
     pub(crate) fn spawn_once(
@@ -541,13 +551,10 @@ impl Module for EntitySync {
             self.local_diff_model.got_polied(gid);
         }
         if self.should_be_tracked(entity)? {
-            self.entity_manager.set_current_entity(entity)?;
-            if self
-                .entity_manager
-                .has_tag(const { CachedTag::from_tag(DES_TAG) })
+            let mut handle = self.entity_manager.handle(entity)?;
+            if handle.has_tag(const { CachedTag::from_tag(DES_TAG) })
                 && !self.dont_kill.remove(&entity)
-                && self
-                    .entity_manager
+                && handle
                     .get_var(const { VarName::from_str("ew_gid_lid") })
                     .map(|var| {
                         if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
@@ -562,26 +569,13 @@ impl Module for EntitySync {
                     entity.kill();
                 }
             } else {
-                if self
-                    .entity_manager
-                    .has_tag(const { CachedTag::from_tag("card_action") })
+                if handle.has_tag(const { CachedTag::from_tag("card_action") })
+                    && let Some(cost) =
+                        handle.try_get_first_component::<ItemCostComponent>(ComponentTag::None)
+                    && cost.stealable()?
                 {
-                    if let Some(cost) = self
-                        .entity_manager
-                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)
-                        && cost.stealable()?
-                    {
-                        cost.set_stealable(false)?;
-                        self.entity_manager
-                            .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
-                    }
-                    if let Some(vel) = self
-                        .entity_manager
-                        .try_get_first_component::<VelocityComponent>(ComponentTag::None)
-                    {
-                        vel.set_gravity_y(0.0)?;
-                        vel.set_air_friction(10.0)?;
-                    }
+                    cost.set_stealable(false)?;
+                    handle.get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
                 }
                 self.to_track.push(entity);
             }
@@ -676,12 +670,20 @@ impl Module for EntitySync {
             let dead;
             (dead, self.local_index) = match self
                 .local_diff_model
-                .update_tracked_entities(ctx, self.local_index, start, &mut self.entity_manager)
+                .update_tracked_entities(
+                    ctx,
+                    self.local_index,
+                    start,
+                    &mut self.entity_manager,
+                    &mut self.sprite_animations,
+                )
                 .wrap_err("Failed to update locally tracked entities")
             {
                 Ok(ret) => ret,
                 Err(s) => {
-                    self.clear_buffer(ctx, &new_intersects)?;
+                    // Flushing is best effort here - a send failure must not
+                    // displace s, which is the error that explains the frame.
+                    let _ = self.clear_buffer(ctx, &new_intersects);
                     return Err(s);
                 }
             };
@@ -760,7 +762,13 @@ impl Module for EntitySync {
                     Some(remote_model) => {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
                         let v = remote_model
-                            .apply_entities(ctx, *vi, start, &mut self.entity_manager)
+                            .apply_entities(
+                                ctx,
+                                *vi,
+                                start,
+                                &mut self.entity_manager,
+                                &mut self.sprite_animations,
+                            )
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
                         if self.log_performance {
