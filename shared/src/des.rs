@@ -38,6 +38,7 @@ pub struct FullEntityData {
     pub wand: Option<Vec<u8>>,
     //pub rotation: f32,
     pub hp: f32,
+    pub max_hp: Option<f32>,
     pub drops_gold: bool,
     pub is_charmed: bool,
     pub counter: u8,
@@ -52,6 +53,7 @@ pub struct UpdatePosition {
     pub counter: u8,
     pub is_charmed: bool,
     pub hp: f32,
+    pub max_hp: Option<f32>,
     pub phys: Vec<Option<PhysBodyInfo>>,
     pub synced_var: Vec<(String, String, i32, f32, bool)>,
 }
@@ -124,6 +126,10 @@ pub struct EntityInfo {
     pub vx: f32,
     pub vy: f32,
     pub hp: f32,
+    /// The owner's max hp, so that a receiver converges on it instead of only ever raising its own.
+    /// `None` means the owner has nothing to say, either because the entity has no damage model or
+    /// because it died before its first collect, and a receiver leaves its own max hp alone.
+    pub max_hp: Option<f32>,
     pub phys: Vec<Option<PhysBodyInfo>>,
     pub cost: i64,
     pub game_effects: Vec<GameEffectData>,
@@ -193,6 +199,10 @@ pub enum EntityUpdate {
     SetIsEnabled(bool),
     SetCounter(u8),
     SetSyncedVar(Vec<(String, String, i32, f32, bool)>),
+    // New variants go at the end. bitcode encodes the variant by its index in
+    // this list, so inserting one anywhere else renumbers every variant after
+    // it and a peer on an older build silently applies the wrong update.
+    SetMaxHp(Option<f32>),
 }
 
 #[derive(Debug, Encode, Decode, Clone)]

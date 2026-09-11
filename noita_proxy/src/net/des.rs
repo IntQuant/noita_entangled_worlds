@@ -3,9 +3,10 @@ use std::mem;
 use bitcode::{Decode, Encode};
 use rstar::{RTree, primitives::GeomWithData};
 use rustc_hash::FxHashMap;
+use shared::WorldPos;
 use shared::des::{
-    DesToProxy, FullEntityData, Gid, ProxyToDes, REQUEST_AUTHORITY_RADIUS, UpdateOrUpload,
-    UpdatePosition,
+    DesToProxy, EntitySpawnInfo, FullEntityData, Gid, PhysBodyInfo, ProxyToDes,
+    REQUEST_AUTHORITY_RADIUS, UpdateOrUpload, UpdatePosition,
 };
 use tracing::{info, warn};
 
@@ -19,7 +20,62 @@ struct EntityStorage {
 }
 
 impl SaveStateEntry for EntityStorage {
+    /// Deliberately not the name the pre max_hp builds used. This storage is bitcode encoded and
+    /// bitcode is not self describing, so which struct a file holds cannot be recovered from its
+    /// bytes: an old payload usually fails to decode as the new shape, but it can also succeed and
+    /// hand back entities with a shuffled counter, an emptied phys list or a garbage max hp. The
+    /// filename is the only honest discriminator, so each format gets its own.
+    const FILENAME: &'static str = "des_entity_storage_v2";
+}
+
+/// `FullEntityData` as it was before entities carried their owner's max hp.
+///
+/// Kept so a save from an older build can be migrated instead of dropped. Losing it is not a
+/// cosmetic reset: on load Noita restores DES entities from its own world save and `on_new_entity`
+/// kills every one of them on sight, trusting this store to hand them back through `GotAuthority`.
+/// With nothing to hand back, a continued run would quietly lose every synced enemy, wand and
+/// ground item on every peer, permanently.
+#[derive(Encode, Decode)]
+struct OldFullEntityData {
+    gid: Gid,
+    pos: WorldPos,
+    data: EntitySpawnInfo,
+    wand: Option<Vec<u8>>,
+    hp: f32,
+    drops_gold: bool,
+    is_charmed: bool,
+    counter: u8,
+    phys: Vec<Option<PhysBodyInfo>>,
+    synced_var: Vec<(String, String, i32, f32, bool)>,
+}
+
+#[derive(Encode, Decode, Default)]
+struct OldEntityStorage {
+    entities: FxHashMap<Gid, OldFullEntityData>,
+}
+
+impl SaveStateEntry for OldEntityStorage {
     const FILENAME: &'static str = "des_entity_storage";
+}
+
+impl From<OldFullEntityData> for FullEntityData {
+    fn from(old: OldFullEntityData) -> Self {
+        Self {
+            gid: old.gid,
+            pos: old.pos,
+            data: old.data,
+            wand: old.wand,
+            hp: old.hp,
+            // These entities predate max hp sync, so nobody has anything to say about theirs until
+            // an owner collects one - which is exactly what `None` already means.
+            max_hp: None,
+            drops_gold: old.drops_gold,
+            is_charmed: old.is_charmed,
+            counter: old.counter,
+            phys: old.phys,
+            synced_var: old.synced_var,
+        }
+    }
 }
 
 pub(crate) struct DesManager {
@@ -34,7 +90,23 @@ pub(crate) struct DesManager {
 impl DesManager {
     pub(crate) fn new(is_host: bool, save_state: SaveState) -> Self {
         info!("Loading EntityStorage...");
-        let entity_storage: EntityStorage = save_state.load().unwrap_or_default();
+        let entity_storage: EntityStorage = save_state
+            .load()
+            .or_else(|| {
+                let old: OldEntityStorage = save_state.load()?;
+                info!(
+                    "Migrating {} entities from the pre max_hp save format",
+                    old.entities.len()
+                );
+                Some(EntityStorage {
+                    entities: old
+                        .entities
+                        .into_iter()
+                        .map(|(gid, ent)| (gid, ent.into()))
+                        .collect(),
+                })
+            })
+            .unwrap_or_default();
 
         info!("Preparing elements...");
         let elements: Vec<_> = entity_storage
@@ -85,6 +157,7 @@ impl DesManager {
                     counter,
                     is_charmed,
                     hp,
+                    max_hp,
                     phys,
                     synced_var,
                 } = update;
@@ -93,6 +166,7 @@ impl DesManager {
                     entity.pos = pos;
                     entity.is_charmed = is_charmed;
                     entity.hp = hp;
+                    entity.max_hp = max_hp;
                     entity.counter = counter;
                     entity.phys = phys;
                     entity.synced_var = synced_var;

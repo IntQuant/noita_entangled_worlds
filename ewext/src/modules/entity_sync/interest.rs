@@ -49,8 +49,11 @@ impl InterestTracker {
         std::mem::take(&mut self.added_any)
     }
 
-    pub(crate) fn drain_lost_interest(&mut self) -> impl Iterator<Item = PeerId> + '_ {
-        self.lost_interest.drain(..)
+    /// Hands over the queue the way `got_any_new_interested` does, rather than
+    /// lending out a `Drain`: the caller sends a message per peer, and a `Drain`
+    /// dropped on the first failed send would take every peer behind it with it.
+    pub(crate) fn drain_lost_interest(&mut self) -> Vec<PeerId> {
+        std::mem::take(&mut self.lost_interest)
     }
 
     pub(crate) fn remove_peer(&mut self, peer: PeerId) {

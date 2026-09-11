@@ -26,6 +26,11 @@ pub(crate) struct WorldModel {
     /// Tracks chunks which we written to.
     /// This includes any write, not just those that actually changed at least one pixel.
     updated_chunks: FxHashSet<ChunkCoord>,
+    /// Chunks that were written by `apply_chunk_data`, i.e. a whole-chunk
+    /// snapshot, and so must be handed to the game in full rather than as the
+    /// pixels that changed. Only meaningful for the inbound model, which is the
+    /// only one that gets serialized back to Noita.
+    full_write_chunks: FxHashSet<ChunkCoord>,
 }
 
 /// Contains full info abount a chunk, RLE encoded.
@@ -243,10 +248,53 @@ impl WorldModel {
         runner.into_noita_update(x, y, (CHUNK_SIZE - 1) as u8, (CHUNK_SIZE - 1) as u8)
     }
 
+    /// Serialize only the pixels marked changed since the last emission, with
+    /// every other pixel encoded as Unknown. Both decoders skip a pixel whose
+    /// material is -1 (the Lua one in `world_sync/world.lua` and the native one
+    /// in `ewext/src/noita/decode.rs`), so this writes the delta and leaves the
+    /// rest of the chunk as the game has it.
+    ///
+    /// Returns None when nothing changed, so a delta that turned out to be a
+    /// no-op costs the game nothing.
+    fn get_changed_noita_update(&self, chunk_coord: ChunkCoord) -> Option<NoitaWorldUpdate> {
+        let chunk = self.chunks.get(&chunk_coord)?;
+        let unknown = Pixel::default().to_raw();
+        let mut runner = PixelRunner::new();
+        let mut any_changed = false;
+        for offset in 0..CHUNK_AREA {
+            if chunk.changed(offset) {
+                any_changed = true;
+                runner.put_pixel(chunk.pixel(offset).to_raw())
+            } else {
+                runner.put_pixel(unknown)
+            }
+        }
+        any_changed.then(|| {
+            runner.into_noita_update(
+                chunk_coord.0 * (CHUNK_SIZE as i32),
+                chunk_coord.1 * (CHUNK_SIZE as i32),
+                (CHUNK_SIZE - 1) as u8,
+                (CHUNK_SIZE - 1) as u8,
+            )
+        })
+    }
+
+    /// Everything written since the last `reset_change_tracking()`, as updates
+    /// for the game.
+    ///
+    /// Chunks that got a whole-chunk snapshot are written in full; chunks that
+    /// only got deltas are written as just those deltas. Re-asserting a whole
+    /// chunk for every delta is what used to revert a listener's local terrain
+    /// edits a couple of frames after they happened: the authority's next delta
+    /// for any pixel of that chunk dragged its entire cached view along with it.
     pub fn get_all_noita_updates(&self) -> Vec<Vec<u8>> {
         let mut updates = Vec::new();
         for chunk_coord in &self.updated_chunks {
-            updates.push(self.get_chunk_noita_update(*chunk_coord).save());
+            if self.full_write_chunks.contains(chunk_coord) {
+                updates.push(self.get_chunk_noita_update(*chunk_coord).save());
+            } else if let Some(update) = self.get_changed_noita_update(*chunk_coord) {
+                updates.push(update.save());
+            }
         }
         updates
     }
@@ -263,6 +311,14 @@ impl WorldModel {
             if let Some(pixel) = run.data {
                 for _ in 0..len {
                     chunk.set_compact_pixel(offset, pixel);
+                    // Mark unconditionally: the changed bits are what
+                    // `get_changed_noita_update` writes to the game, and a
+                    // pixel the sender bothered to include should be asserted
+                    // even if our cached copy already agrees - the game's own
+                    // copy may not. This is safe because only the inbound model
+                    // sees deltas; the outbound model's bits, which decide what
+                    // gets sent to peers, are set by `apply_noita_update` only.
+                    chunk.mark_changed(offset);
                     offset += 1;
                 }
             } else {
@@ -292,6 +348,9 @@ impl WorldModel {
         &self.updated_chunks
     }
 
+    /// Safe to call right after `get_all_noita_updates()`: that returns updates
+    /// already serialized to bytes, so dropping the change tracking afterwards
+    /// cannot affect what the caller is about to send.
     pub fn reset_change_tracking(&mut self) {
         for chunk_pos in &self.updated_chunks {
             if let Some(chunk) = self.chunks.get_mut(chunk_pos) {
@@ -299,16 +358,21 @@ impl WorldModel {
             }
         }
         self.updated_chunks.clear();
+        self.full_write_chunks.clear();
     }
 
     pub fn reset(&mut self) {
         self.chunks.clear();
         self.updated_chunks.clear();
+        self.full_write_chunks.clear();
         info!("World model reset");
     }
 
     pub(crate) fn apply_chunk_data(&mut self, chunk: ChunkCoord, chunk_data: &ChunkData) {
         self.updated_chunks.insert(chunk);
+        // A snapshot, not a diff: the receiver has no reason to trust its own
+        // copy of this chunk, so it has to be written to the game whole.
+        self.full_write_chunks.insert(chunk);
         let chunk = self.chunks.entry(chunk).or_default();
         chunk_data.apply_to_chunk(chunk);
     }
@@ -321,11 +385,12 @@ impl WorldModel {
     pub(crate) fn forget_chunk(&mut self, chunk: ChunkCoord) {
         self.chunks.remove(&chunk);
         self.updated_chunks.remove(&chunk);
+        self.full_write_chunks.remove(&chunk);
     }
 }
 
 #[cfg(test)]
-mod wire_bounds_tests {
+mod tests {
     use super::encoding::{Header, RawPixel};
     use super::*;
 
@@ -402,5 +467,131 @@ mod wire_bounds_tests {
             "update escaped its declared rectangle: {:?}",
             model.updated_chunks
         );
+    }
+
+    const UNKNOWN: u16 = u16::MAX;
+
+    fn compact(material: u16) -> CompactPixel {
+        Pixel {
+            flags: PixelFlags::Normal,
+            material,
+        }
+        .to_compact()
+    }
+
+    /// Materials of every pixel of a serialized update, in chunk order.
+    fn materials(update: &[u8]) -> Vec<u16> {
+        let update = NoitaWorldUpdate::load(update);
+        assert_eq!(update.header.w, (CHUNK_SIZE - 1) as u8);
+        assert_eq!(update.header.h, (CHUNK_SIZE - 1) as u8);
+        let mut out = Vec::new();
+        for run in &update.runs {
+            for _ in 0..run.length {
+                out.push(run.data.material);
+            }
+        }
+        assert_eq!(out.len(), CHUNK_AREA);
+        out
+    }
+
+    fn only_update(model: &WorldModel) -> Vec<u16> {
+        let updates = model.get_all_noita_updates();
+        assert_eq!(updates.len(), 1, "expected exactly one chunk update");
+        materials(&updates[0])
+    }
+
+    /// A delta must reach the game as just its own pixels. Everything else has
+    /// to be Unknown, which both decoders skip - otherwise the sender's cached
+    /// view of the whole chunk overwrites terrain the receiver changed locally.
+    #[test]
+    fn delta_emits_unknown_outside_the_delta() {
+        let mut model = WorldModel::default();
+        let coord = ChunkCoord(0, 0);
+        model.apply_chunk_data(coord, &ChunkData::new(5));
+        model.reset_change_tracking();
+
+        model.apply_chunk_delta(&ChunkDelta {
+            chunk_coord: coord,
+            runs: Arc::new(vec![
+                PixelRun {
+                    length: 3,
+                    data: Some(compact(7)),
+                },
+                // Same material the chunk already holds: still part of the
+                // delta, so it still gets asserted at the game.
+                PixelRun {
+                    length: 1,
+                    data: Some(compact(5)),
+                },
+                PixelRun {
+                    length: (CHUNK_AREA - 4) as u32,
+                    data: None,
+                },
+            ]),
+        });
+
+        let got = only_update(&model);
+        assert_eq!(&got[..4], &[7, 7, 7, 5]);
+        assert!(
+            got[4..].iter().all(|m| *m == UNKNOWN),
+            "pixels outside the delta must be Unknown"
+        );
+        // The cached copy still holds the whole chunk - ray casting reads it.
+        assert_eq!(model.chunks[&coord].pixel(100).material, 5);
+    }
+
+    /// A snapshot has to install the whole chunk.
+    #[test]
+    fn chunk_data_emits_the_full_chunk() {
+        let mut model = WorldModel::default();
+        model.apply_chunk_data(ChunkCoord(1, -2), &ChunkData::new(5));
+
+        assert!(only_update(&model).iter().all(|m| *m == 5));
+    }
+
+    /// Snapshot wins over a delta landing in the same tick: the receiver has no
+    /// trustworthy copy of that chunk yet, so a partial write would leave the
+    /// rest of it at whatever the game happened to have.
+    #[test]
+    fn delta_after_chunk_data_still_emits_the_full_chunk() {
+        let mut model = WorldModel::default();
+        let coord = ChunkCoord(0, 0);
+        model.apply_chunk_data(coord, &ChunkData::new(5));
+        model.apply_chunk_delta(&ChunkDelta {
+            chunk_coord: coord,
+            runs: Arc::new(vec![
+                PixelRun {
+                    length: 2,
+                    data: Some(compact(7)),
+                },
+                PixelRun {
+                    length: (CHUNK_AREA - 2) as u32,
+                    data: None,
+                },
+            ]),
+        });
+
+        let got = only_update(&model);
+        assert_eq!(&got[..2], &[7, 7]);
+        assert!(
+            got[2..].iter().all(|m| *m == 5),
+            "chunk was not written whole"
+        );
+    }
+
+    /// Nothing may leak into the next tick: a chunk emitted once must not be
+    /// re-emitted, and a forgotten chunk must not come back as a full write.
+    #[test]
+    fn emission_state_is_cleared() {
+        let mut model = WorldModel::default();
+        let coord = ChunkCoord(0, 0);
+        model.apply_chunk_data(coord, &ChunkData::new(5));
+        model.reset_change_tracking();
+        assert!(model.get_all_noita_updates().is_empty());
+
+        model.apply_chunk_data(coord, &ChunkData::new(5));
+        model.forget_chunk(coord);
+        assert!(model.get_all_noita_updates().is_empty());
+        assert!(model.full_write_chunks.is_empty());
     }
 }

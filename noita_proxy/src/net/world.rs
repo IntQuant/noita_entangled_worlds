@@ -473,20 +473,22 @@ impl WorldManager {
                 let mut new_auth_got = false;
                 if !*stop_sending {
                     for &listener in listeners.iter() {
-                        let take_auth = new_auth == Some(listener);
-                        if take_auth {
-                            new_auth_got = true
-                        }
-                        if take_auth {
+                        // The listener taking authority gets the delta inline,
+                        // as a ListenUpdate. Everyone else gets a ChunkPacket
+                        // entry - this must not clear the entries collected for
+                        // listeners visited earlier in the set, since add_end()
+                        // calls reset_change_tracking() right after and those
+                        // pixels would never be sent again.
+                        if new_auth == Some(listener) {
+                            new_auth_got = true;
                             emit_queue.push((
                                 Destination::Peer(listener),
                                 WorldNetMessage::ListenUpdate {
                                     delta: delta.clone(),
                                     priority,
-                                    take_auth,
+                                    take_auth: true,
                                 },
                             ));
-                            chunks_to_send = Vec::new()
                         } else {
                             chunks_to_send.push((listener, priority));
                         }
