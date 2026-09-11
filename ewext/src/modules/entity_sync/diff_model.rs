@@ -1,4 +1,5 @@
 use super::NetManager;
+use super::sprite_animations::SpriteAnimations;
 use crate::{ephemerial, modules::ModuleCtx, my_peer_id, print_error};
 use bimap::BiHashMap;
 use eyre::{Context, OptionExt, eyre};
@@ -269,6 +270,7 @@ impl LocalDiffModelTracker {
         should_transfer: bool,
         ignore_transfer: bool,
         entity_manager: &mut EntityManager,
+        sprite_animations: &mut SpriteAnimations,
     ) -> eyre::Result<bool> {
         let entity = self
             .entity_by_lid(lid)
@@ -526,7 +528,6 @@ impl LocalDiffModelTracker {
                 info.ai_rotation = ai.m_ranged_attack_current_aim_angle()?;
             }
         } else {
-            let mut files = std::mem::take(&mut entity_manager.files);
             let sprites =
                 entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
             info.facing_direction = (sx.is_sign_positive(), sy.is_sign_positive());
@@ -534,22 +535,13 @@ impl LocalDiffModelTracker {
                 .filter_map(|sprite| {
                     let file = sprite.image_file().ok()?;
                     if file.ends_with(".xml") {
-                        let text = noita_api::get_file(&mut files, file).ok()?;
                         let animation = sprite.rect_animation().unwrap_or("".into());
-                        Some(
-                            text.iter()
-                                .position(|name| name == &animation)
-                                .unwrap_or(usize::MAX) as u16,
-                        )
+                        sprite_animations.index_of(file, &animation).ok()
                     } else {
                         None
                     }
                 })
                 .collect();
-            // Hand the map back before anything below can bail out: it is on
-            // loan from the manager, and `get_file` unwraps it, so an early
-            // return here takes the game down on the next entity.
-            entity_manager.files = files;
             if let Some(ai) =
                 entity_manager.try_get_first_component::<AnimalAIComponent>(ComponentTag::None)
                 && ai.attack_ranged_use_laser_sight()?
@@ -1103,6 +1095,7 @@ impl LocalDiffModel {
         start: usize,
         tmr: Instant,
         entity_manager: &mut EntityManager,
+        sprite_animations: &mut SpriteAnimations,
     ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, usize)> {
         self.update_buffer.clear();
         let (cam_x, cam_y) = entity_manager.camera_pos();
@@ -1168,6 +1161,7 @@ impl LocalDiffModel {
                     should_transfer && self.wait_to_transfer == 0,
                     !self.dont_save.contains(&lid),
                     entity_manager,
+                    sprite_animations,
                 )
                 .wrap_err("Failed to update local entity")
             {
@@ -1586,6 +1580,7 @@ impl RemoteDiffModel {
         entity: EntityID,
         lid: &Lid,
         entity_manager: &mut EntityManager,
+        sprite_animations: &mut SpriteAnimations,
     ) -> eyre::Result<Option<Lid>> {
         if entity_info.kind == EntityKind::Item && item_in_my_inventory(entity)?
             || item_in_entity_inventory(entity)?
@@ -1873,46 +1868,35 @@ impl RemoteDiffModel {
             ai.set_ai_state(entity_info.ai_state)?;
             ai.set_m_ranged_attack_current_aim_angle(entity_info.ai_rotation)?;
         } else {
-            let mut files = std::mem::take(&mut entity_manager.files);
-            // The map is on loan from the manager and `get_file` unwraps it, so
-            // every exit from this block has to hand it back - including the
-            // fallible ones, which is why the body is a closure.
-            let res = (|| -> eyre::Result<()> {
-                let sprites = entity_manager
-                    .iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
-                for (sprite, animation) in sprites
-                    .filter(|sprite| {
-                        sprite
-                            .image_file()
-                            .map(|c| c.ends_with(".xml"))
-                            .unwrap_or(false)
-                    })
-                    .zip(entity_info.animations.iter())
-                {
-                    sprite.set_special_scale_x(if entity_info.facing_direction.0 {
-                        1.0
-                    } else {
-                        -1.0
-                    })?;
-                    sprite.set_special_scale_y(if entity_info.facing_direction.1 {
-                        1.0
-                    } else {
-                        -1.0
-                    })?;
-                    if *animation == u16::MAX {
-                        continue;
-                    }
-                    let file = sprite.image_file()?;
-                    let text = noita_api::get_file(&mut files, file)?;
-                    if let Some(ani) = text.get(*animation as usize) {
-                        sprite.set_rect_animation(ani.into())?;
-                        sprite.set_next_rect_animation(ani.into())?;
-                    }
+            let sprites =
+                entity_manager.iter_all_components_of_type::<SpriteComponent>(ComponentTag::None);
+            for (sprite, animation) in sprites
+                .filter(|sprite| {
+                    sprite
+                        .image_file()
+                        .map(|c| c.ends_with(".xml"))
+                        .unwrap_or(false)
+                })
+                .zip(entity_info.animations.iter())
+            {
+                sprite.set_special_scale_x(if entity_info.facing_direction.0 {
+                    1.0
+                } else {
+                    -1.0
+                })?;
+                sprite.set_special_scale_y(if entity_info.facing_direction.1 {
+                    1.0
+                } else {
+                    -1.0
+                })?;
+                if *animation == u16::MAX {
+                    continue;
                 }
-                Ok(())
-            })();
-            entity_manager.files = files;
-            res?;
+                if let Some(ani) = sprite_animations.name_at(sprite.image_file()?, *animation)? {
+                    sprite.set_rect_animation(ani.into())?;
+                    sprite.set_next_rect_animation(ani.into())?;
+                }
+            }
         }
         let laser =
             entity_manager.try_get_first_component::<LaserEmitterComponent>(ComponentTag::None);
@@ -1963,6 +1947,7 @@ impl RemoteDiffModel {
         start: usize,
         tmr: Instant,
         entity_manager: &mut EntityManager,
+        sprite_animations: &mut SpriteAnimations,
     ) -> eyre::Result<usize> {
         let mut to_remove = Vec::new();
         let l = self.entity_infos.len();
@@ -2015,7 +2000,14 @@ impl RemoteDiffModel {
                             }
                         }
                     } else {
-                        match self.inner(ctx, entity_info, *entity, lid, entity_manager) {
+                        match self.inner(
+                            ctx,
+                            entity_info,
+                            *entity,
+                            lid,
+                            entity_manager,
+                            sprite_animations,
+                        ) {
                             Ok(Some(lid)) => to_remove.push(lid),
                             Err(s) => print_error(s)?,
                             _ => {}

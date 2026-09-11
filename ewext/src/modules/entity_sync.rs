@@ -21,9 +21,11 @@ use shared::{
     Destination, NoitaOutbound, PeerId, RemoteMessage, WorldPos,
     des::{Gid, InterestRequest, ProjectileFired, RemoteDes},
 };
+use sprite_animations::SpriteAnimations;
 use std::sync::{LazyLock, Mutex};
 mod diff_model;
 mod interest;
+mod sprite_animations;
 
 static ENTITY_EXCLUDES: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
     let mut hs = FxHashSet::default();
@@ -58,6 +60,7 @@ pub(crate) struct EntitySync {
     peer_order: Vec<PeerId>,
     log_performance: bool,
     entity_manager: EntityManager,
+    sprite_animations: SpriteAnimations,
 }
 impl EntitySync {
     pub(crate) fn set_perf(&mut self, perf: bool) {
@@ -113,6 +116,7 @@ impl Default for EntitySync {
             peer_order: Vec::new(),
             log_performance: false,
             entity_manager: EntityManager::default(),
+            sprite_animations: SpriteAnimations::default(),
         }
     }
 }
@@ -667,7 +671,13 @@ impl Module for EntitySync {
             let dead;
             (dead, self.local_index) = match self
                 .local_diff_model
-                .update_tracked_entities(ctx, self.local_index, start, &mut self.entity_manager)
+                .update_tracked_entities(
+                    ctx,
+                    self.local_index,
+                    start,
+                    &mut self.entity_manager,
+                    &mut self.sprite_animations,
+                )
                 .wrap_err("Failed to update locally tracked entities")
             {
                 Ok(ret) => ret,
@@ -751,7 +761,13 @@ impl Module for EntitySync {
                     Some(remote_model) => {
                         let vi = self.remote_index.entry(*owner).or_insert(0);
                         let v = remote_model
-                            .apply_entities(ctx, *vi, start, &mut self.entity_manager)
+                            .apply_entities(
+                                ctx,
+                                *vi,
+                                start,
+                                &mut self.entity_manager,
+                                &mut self.sprite_animations,
+                            )
                             .wrap_err("Failed to apply entity infos")?;
                         self.remote_index.insert(*owner, v);
                         if self.log_performance {

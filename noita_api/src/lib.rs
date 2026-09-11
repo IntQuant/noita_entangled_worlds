@@ -1289,7 +1289,6 @@ pub struct EntityManager {
     current_entity: EntityID,
     current_data: EntityData,
     has_ran: bool,
-    pub files: Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
     frame_num: i32,
     camera_pos: (f64, f64),
     bypass_cache: bool,
@@ -1301,7 +1300,6 @@ impl Default for EntityManager {
             current_entity: EntityID(NonZeroIsize::new(-1).unwrap()),
             current_data: Default::default(),
             has_ran: false,
-            files: Some(FxHashMap::with_capacity_and_hasher(512, FxBuildHasher)),
             frame_num: -1,
             camera_pos: (0.0, 0.0),
             bypass_cache: false,
@@ -1881,20 +1879,5 @@ impl EntityManager {
             }
         }
         Ok(())
-    }
-}
-pub fn get_file<'a>(
-    files: &'a mut Option<FxHashMap<Cow<'static, str>, Vec<String>>>,
-    file: Cow<'static, str>,
-) -> eyre::Result<&'a [String]> {
-    match files.as_mut().unwrap().entry(file) {
-        std::collections::hash_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-            let content = raw::mod_text_file_get_content(entry.key().clone())?;
-            let mut split = content.split("name=\"");
-            split.next();
-            let split = split.map(|piece| piece.split_once("\"").unwrap().0.to_string());
-            Ok(entry.insert(split.collect::<Vec<String>>()))
-        }
     }
 }
