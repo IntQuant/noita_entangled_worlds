@@ -1664,13 +1664,13 @@ impl RemoteDiffModel {
                 limb.set_end_position((*x, *y))?;
             }
             if let Ok(limb) = ent.get_first_component::<IKLimbWalkerComponent>(None) {
-                handle.remove_component(limb)?
+                ent.remove_component(*limb)?
             };
             if let Ok(limb) = ent.get_first_component::<IKLimbAttackerComponent>(None) {
-                handle.remove_component(limb)?
+                ent.remove_component(*limb)?
             };
             if let Ok(limb) = ent.get_first_component::<IKLimbsAnimatorComponent>(None) {
-                handle.remove_component(limb)?
+                ent.remove_component(*limb)?
             };
         }
         let m = *ctx.fps_by_player.get(&self.peer_id).unwrap_or(&60) as f32
