@@ -142,14 +142,6 @@ impl WorldModel {
         self.updated_chunks.insert(chunk_coord);
     }*/
 
-    fn get_pixel(&self, x: i32, y: i32) -> Pixel {
-        let (chunk_coord, offset) = Self::get_chunk_coords(x, y);
-        self.chunks
-            .get(&chunk_coord)
-            .map(|chunk| chunk.pixel(offset))
-            .unwrap_or_default()
-    }
-
     pub fn apply_noita_update(
         &mut self,
         update: &NoitaWorldUpdate,
@@ -176,6 +168,10 @@ impl WorldModel {
         let mut written: i64 = 0;
         let (mut chunk_coord, _) = Self::get_chunk_coords(header.x, header.y);
         let mut chunk = self.chunks.entry(chunk_coord).or_default();
+        // Both sets below are keyed by chunk, so touching them per pixel was
+        // 2-3 hash operations per changed pixel. Accumulate and flush on chunk
+        // transition instead.
+        let mut chunk_dirty = false;
         'outer: for run in runs {
             let flags = if run.data.flags > 0 {
                 PixelFlags::Fluid
@@ -191,6 +187,11 @@ impl WorldModel {
                 let ys = header.y + y;
                 let (new_chunk_coord, offset) = Self::get_chunk_coords(xs, ys);
                 if chunk_coord != new_chunk_coord {
+                    if chunk_dirty {
+                        self.updated_chunks.insert(chunk_coord);
+                        changed.remove(&chunk_coord);
+                        chunk_dirty = false;
+                    }
                     chunk_coord = new_chunk_coord;
                     chunk = self.chunks.entry(chunk_coord).or_default();
                 }
@@ -202,10 +203,7 @@ impl WorldModel {
                     chunk,
                     offset,
                 ) {
-                    self.updated_chunks.insert(chunk_coord);
-                    if changed.contains(&chunk_coord) {
-                        changed.remove(&chunk_coord);
-                    }
+                    chunk_dirty = true;
                 }
                 x += 1;
                 if x == i32::from(header.w) + 1 {
@@ -214,30 +212,41 @@ impl WorldModel {
                 }
             }
         }
+        if chunk_dirty {
+            self.updated_chunks.insert(chunk_coord);
+            changed.remove(&chunk_coord);
+        }
     }
 
-    pub fn get_noita_update(&self, x: i32, y: i32, w: u32, h: u32) -> NoitaWorldUpdate {
-        assert!(w <= 256);
-        assert!(h <= 256);
+    /// Serialize one whole chunk. Callers always want chunk-aligned,
+    /// CHUNK_SIZE-square regions, so this indexes the chunk directly instead of
+    /// going through a hash lookup per pixel.
+    fn get_chunk_noita_update(&self, chunk_coord: ChunkCoord) -> NoitaWorldUpdate {
+        let x = chunk_coord.0 * (CHUNK_SIZE as i32);
+        let y = chunk_coord.1 * (CHUNK_SIZE as i32);
         let mut runner = PixelRunner::new();
-        for j in 0..(h as i32) {
-            for i in 0..(w as i32) {
-                runner.put_pixel(self.get_pixel(x + i, y + j).to_raw())
+        match self.chunks.get(&chunk_coord) {
+            // Offsets are laid out as `x + y * CHUNK_SIZE`, so a linear walk
+            // visits pixels in the same order as the old row-major loop.
+            Some(chunk) => {
+                for offset in 0..(CHUNK_SIZE * CHUNK_SIZE) {
+                    runner.put_pixel(chunk.pixel(offset).to_raw())
+                }
+            }
+            None => {
+                let unknown = Pixel::default().to_raw();
+                for _ in 0..(CHUNK_SIZE * CHUNK_SIZE) {
+                    runner.put_pixel(unknown)
+                }
             }
         }
-        runner.into_noita_update(x, y, (w - 1) as u8, (h - 1) as u8)
+        runner.into_noita_update(x, y, (CHUNK_SIZE - 1) as u8, (CHUNK_SIZE - 1) as u8)
     }
 
     pub fn get_all_noita_updates(&self) -> Vec<Vec<u8>> {
         let mut updates = Vec::new();
         for chunk_coord in &self.updated_chunks {
-            let update = self.get_noita_update(
-                chunk_coord.0 * (CHUNK_SIZE as i32),
-                chunk_coord.1 * (CHUNK_SIZE as i32),
-                CHUNK_SIZE as u32,
-                CHUNK_SIZE as u32,
-            );
-            updates.push(update.save());
+            updates.push(self.get_chunk_noita_update(*chunk_coord).save());
         }
         updates
     }
