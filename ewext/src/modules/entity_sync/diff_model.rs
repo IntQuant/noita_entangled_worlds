@@ -984,7 +984,6 @@ impl LocalDiffModel {
                 entity
                     .children(Some("protection".into()))
                     .for_each(|ent| ent.kill());
-                handle.add_tag(const { CachedTag::from_tag("boss_centipede_active") })?;
                 entity.set_static(false)?
             }
         }
@@ -1007,6 +1006,11 @@ impl LocalDiffModel {
             entity.set_position(entity_data.pos.x as f64, entity_data.pos.y as f64, None)?;
             if entity_data.is_charmed {
                 if handle.has_tag(const { CachedTag::from_tag("boss_centipede") }) {
+                    // Tagged here rather than in enable_later: kolmi.lua starts the
+                    // fight on any Kolmi this peer owns that lacks the tag, and this
+                    // one is owned by the end of this loop but its components only
+                    // come on next frame.
+                    handle.add_tag(const { CachedTag::from_tag("boss_centipede_active") })?;
                     self.enable_later.push(entity);
                 } else if handle.has_tag(const { CachedTag::from_tag("pitcheck_b") }) {
                     handle.set_components_with_tag_enabled(
