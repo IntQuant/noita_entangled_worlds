@@ -545,13 +545,10 @@ impl Module for EntitySync {
             self.local_diff_model.got_polied(gid);
         }
         if self.should_be_tracked(entity)? {
-            self.entity_manager.set_current_entity(entity)?;
-            if self
-                .entity_manager
-                .has_tag(const { CachedTag::from_tag(DES_TAG) })
+            let mut handle = self.entity_manager.handle(entity)?;
+            if handle.has_tag(const { CachedTag::from_tag(DES_TAG) })
                 && !self.dont_kill.remove(&entity)
-                && self
-                    .entity_manager
+                && handle
                     .get_var(const { VarName::from_str("ew_gid_lid") })
                     .map(|var| {
                         if let Ok(n) = var.value_string().unwrap_or("NA".into()).parse::<u64>() {
@@ -566,17 +563,13 @@ impl Module for EntitySync {
                     entity.kill();
                 }
             } else {
-                if self
-                    .entity_manager
-                    .has_tag(const { CachedTag::from_tag("card_action") })
-                    && let Some(cost) = self
-                        .entity_manager
-                        .try_get_first_component::<ItemCostComponent>(ComponentTag::None)
+                if handle.has_tag(const { CachedTag::from_tag("card_action") })
+                    && let Some(cost) =
+                        handle.try_get_first_component::<ItemCostComponent>(ComponentTag::None)
                     && cost.stealable()?
                 {
                     cost.set_stealable(false)?;
-                    self.entity_manager
-                        .get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
+                    handle.get_var_or_default(const { VarName::from_str("ew_was_stealable") })?;
                 }
                 self.to_track.push(entity);
             }
