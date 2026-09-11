@@ -171,6 +171,62 @@ impl LocalDiffModel {
         res
     }
 
+    /// Uploads every newly tracked item without waiting for its first update
+    /// pass, which is where `get_pos_data` would otherwise pick it up.
+    ///
+    /// This has to reach the proxy before `update_entity` can find the item back
+    /// in its owner's inventory. `temporary_untrack_item` then sends a
+    /// `DeleteEntity` naming the entity, and for a gid it has never stored the
+    /// proxy answers by having us kill that entity - its guard against two
+    /// players both keeping one item. Until the upload it cannot tell that apart
+    /// from a player picking their own freshly dropped item back up, and took the
+    /// item away from them.
+    ///
+    /// Only items, because nothing has been read from the game yet: hp goes out as
+    /// -1, which a peer given authority from this data leaves alone, and the next
+    /// position update brings the real values.
+    fn upload_new_items(&mut self, ctx: &mut ModuleCtx) -> eyre::Result<()> {
+        let mut errors = crate::ErrorBatch::default();
+        let pending: Vec<Lid> = self.upload.iter().copied().collect();
+        for lid in pending {
+            let Some(EntityEntryPair {
+                current: Some(current),
+                gid,
+                last: None,
+            }) = self.entity_entries.get(&lid)
+            else {
+                continue;
+            };
+            if current.kind != EntityKind::Item || self.dont_upload.contains(&lid) {
+                continue;
+            }
+            let data = FullEntityData {
+                gid: *gid,
+                pos: WorldPos::from_f32(current.x, current.y),
+                data: current.spawn_info.clone(),
+                wand: current.wand.clone().map(|(_, w, _)| w),
+                drops_gold: current.drops_gold,
+                is_charmed: current.is_charmed(),
+                hp: -1.0,
+                max_hp: None,
+                counter: current.counter,
+                phys: current.phys.clone(),
+                synced_var: current.synced_var.clone(),
+            };
+            match ctx.net.send(&NoitaOutbound::DesToProxy(
+                shared::des::DesToProxy::UpdatePosition(UpdateOrUpload::Upload(data)),
+            )) {
+                Ok(()) => {
+                    self.upload.remove(&lid);
+                }
+                // Left queued, so get_pos_data still uploads it once it has been
+                // through an update pass.
+                Err(err) => errors.push(err),
+            }
+        }
+        errors.finish()
+    }
+
     pub(crate) fn is_entity_tracked(&self, entity: EntityID) -> bool {
         self.tracker.tracked.contains_right(&entity)
     }
@@ -1191,6 +1247,8 @@ impl LocalDiffModel {
         sprite_animations: &mut SpriteAnimations,
     ) -> eyre::Result<(Vec<(WorldPos, SpawnOnce)>, usize)> {
         self.update_buffer.clear();
+        // Before any update_entity call below can report one of them picked up.
+        self.upload_new_items(ctx)?;
         let (cam_x, cam_y) = entity_manager.camera_pos();
         let cam_x = cam_x as f32;
         let cam_y = cam_y as f32;
