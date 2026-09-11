@@ -15,20 +15,18 @@ Functions:
  - `set_max_health(hp: num)`
  - `inflict_damage(dmg: num)`
  - `do_game_over(msg: str)`
- - `on_poly_death(msg: str)`
+ - `on_poly_death()`
 
 Provided by:
- - damage (shared health) system
- - local health system
+ - damage (shared health) system - provides all of the functions above
+ - local health system - provides only `do_game_over` and `on_poly_death`; the
+   other five are commented out, so they are `nil` in `local_health` game mode
 
 Used by:
- - heart pickups system
-
-## 'item_sync' capability
-
-Functions:
- - `globalize(entity_id, instantly: bool | nil, give_authority_to: PeerId | nil)`
- - `register_pickup_handler(fn(local_item_id))`
-
-Provided by:
- - item_sync system
+ - heart pickups system - `health`, `max_health`, `set_health`, `set_max_health`
+   (loaded only in `shared_health` game mode)
+ - patch meat biome system - `health`, `set_health`
+   (loaded only in `shared_health` game mode)
+ - perk patches system - `health`, `max_health`, `set_health`, `set_max_health`
+ - polymorph system - `on_poly_death`
+ - local health system - `on_poly_death`
