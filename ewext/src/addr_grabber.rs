@@ -1,3 +1,7 @@
+// The grabbed function/global addresses are only consumed by code that is
+// itself x86-only (see `ephemerial`), so on host builds they read as dead.
+#![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
+
 use std::{mem, os::raw::c_void, ptr, sync::OnceLock};
 
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};

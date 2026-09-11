@@ -1,5 +1,6 @@
 use std::{ffi::c_void, mem};
 
+pub(crate) mod decode;
 pub(crate) mod ntypes;
 pub(crate) mod pixel;
 

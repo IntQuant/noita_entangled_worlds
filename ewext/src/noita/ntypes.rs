@@ -67,6 +67,7 @@ impl Cell {
 }
 
 #[repr(C)]
+#[cfg_attr(not(target_arch = "x86"), allow(dead_code))]
 pub(crate) struct Entity {
     _unknown0: [u8; 8],
     _filename_index: u32,

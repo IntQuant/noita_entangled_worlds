@@ -10,6 +10,27 @@ local encoded_area = world.EncodedArea()
 
 local world_sync = {}
 
+-- The inbound decode used to be a per-pixel Lua/FFI loop (world.decode), which
+-- is the most expensive thing on the receive path. The native implementation
+-- calls the same NoitaPatcher-resolved game functions.
+--
+-- Off by default: it mutates the live pixel grid and has not been verified in a
+-- real two-player session yet, so it is opt-in until it has been. The setting
+-- is also the way to turn it back off without shipping a new build.
+local use_rust_decode = ModSettingGet("quant.ew.rust_world_decode")
+if use_rust_decode == nil then
+    use_rust_decode = false
+end
+local rust_decode_ready = false
+
+-- Number of native decode failures tolerated before giving up on it for the
+-- session. A failure means the blob was rejected or the decode raised, so the
+-- packet is dropped either way; falling back on the very first one would let a
+-- single malformed packet silently move every later chunk onto the slow path.
+local RUST_DECODE_MAX_FAILURES = 3
+local rust_decode_failures = 0
+local last_decoded_pixels = 0
+
 local KEY_WORLD_FRAME = 0
 local KEY_WORLD_END = 1
 
@@ -48,6 +69,30 @@ function world_sync.on_world_initialized()
     c = c - 1
     print("Last material id: " .. c)
     world.last_material_id = c
+
+    -- Hand the world functions NoitaPatcher resolved to ewext, so the inbound
+    -- decode can run natively. If anything here fails we simply keep using the
+    -- Lua decode below.
+    if use_rust_decode then
+        local ok, err = pcall(function()
+            ewext.init_world_decode(
+                tonumber(ffi.cast("intptr_t", world_ffi.get_cell)),
+                tonumber(ffi.cast("intptr_t", world_ffi.chunk_loaded)),
+                tonumber(ffi.cast("intptr_t", world_ffi.remove_cell)),
+                tonumber(ffi.cast("intptr_t", world_ffi.construct_cell)),
+                c
+            )
+        end)
+        if ok then
+            rust_decode_ready = true
+            print("World decode: native")
+        else
+            rust_decode_ready = false
+            print("World decode: falling back to Lua (" .. tostring(err) .. ")")
+        end
+    else
+        print("World decode: Lua (disabled by setting)")
+    end
     -- do_benchmark()
 end
 
@@ -213,10 +258,46 @@ end
 local PixelRun_const_ptr = ffi.typeof("struct PixelRun const*")
 
 function world_sync.handle_world_data(datum)
+    if rust_decode_ready then
+        -- `datum` is a Lua string and stays alive across this call, so passing
+        -- its address is safe.
+        local ptr = tonumber(ffi.cast("intptr_t", ffi.cast("const char*", datum)))
+        local ok, res = pcall(ewext.decode_area, ptr, #datum)
+        if ok then
+            last_decoded_pixels = res or 0
+            return
+        end
+        -- Drop this packet rather than retrying it in Lua. decode_area's error
+        -- is usually its header/run-count validation rejecting the blob, and
+        -- world.decode does no such validation - handing it a buffer the
+        -- validator refused is how a bad packet gets to walk off the end of it.
+        rust_decode_failures = rust_decode_failures + 1
+        print(
+            "Native world decode failed ("
+                .. rust_decode_failures
+                .. "/"
+                .. RUST_DECODE_MAX_FAILURES
+                .. "), dropping packet: "
+                .. tostring(res)
+        )
+        if rust_decode_failures >= RUST_DECODE_MAX_FAILURES then
+            rust_decode_ready = false
+            print("Native world decode failed too often, reverting to Lua for the rest of the session")
+        end
+        return
+    end
     local grid_world = world_ffi.get_grid_world()
     local header = ffi.cast("struct EncodedAreaHeader const*", ffi.cast("char const*", datum))
     local runs = ffi.cast(PixelRun_const_ptr, ffi.cast("const char*", datum) + ffi.sizeof(world.EncodedAreaHeader))
     world.decode(grid_world, header, runs)
+end
+
+-- Pixels the last native decode actually wrote, and how many blobs it has
+-- rejected so far. Exposed for debugging rather than logged: a chunk arrives
+-- many times a second, so printing per decode would be unreadable and would
+-- itself cost more than the decode.
+function world_sync.native_decode_stats()
+    return last_decoded_pixels, rust_decode_failures, rust_decode_ready
 end
 
 net.net_handling.proxy[0] = function(_, value)
