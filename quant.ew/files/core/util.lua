@@ -188,7 +188,7 @@ end
 -- Caches function's results by first argument
 function util.cached_fn(fn)
     local cache = {}
-    function cached(arg, ...)
+    local function cached(arg, ...)
         if cache[arg] ~= nil then
             return cache[arg]
         end

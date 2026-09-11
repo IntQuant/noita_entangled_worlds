@@ -63,8 +63,8 @@ impl EntitySync {
     pub(crate) fn set_perf(&mut self, perf: bool) {
         self.log_performance = perf;
     }
-    pub(crate) fn set_cache(&mut self, cache: bool) {
-        self.entity_manager.set_cache(cache);
+    pub(crate) fn set_bypass_cache(&mut self, bypass: bool) {
+        self.entity_manager.set_bypass_cache(bypass);
     }
     /*pub(crate) fn has_gid(&self, gid: Gid) -> bool {
         self.local_diff_model.has_gid(gid) || self.remote_models.values().any(|r| r.has_gid(gid))

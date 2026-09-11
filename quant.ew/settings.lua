@@ -293,8 +293,8 @@ local function build_settings()
                 },
                 {
                     id = "cache",
-                    ui_name = "cache entities",
-                    ui_description = "cache entity data to improve performance",
+                    ui_name = "bypass entity cache",
+                    ui_description = "re-read entity data from the game every frame instead of caching it. slower; only for debugging desyncs",
                     value_default = false,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
