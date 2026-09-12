@@ -162,6 +162,18 @@ end
 
 local last_mana = -1
 
+-- Whether a projectile with this lifetime component still exists in `frames`
+-- frames. A missing component puts no bound on the projectile's life at all,
+-- and so does a negative lifetime: rock.xml and propane_tank.xml ship with
+-- ProjectileComponent lifetime -1 and no LifetimeComponent whatsoever.
+local function outlives(component, frames)
+    if component == nil then
+        return true
+    end
+    local lifetime = ComponentGetValue2(component, "lifetime")
+    return lifetime == nil or lifetime < 0 or lifetime > frames
+end
+
 local function fire()
     local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
     if inventory_component ~= nil then
@@ -286,7 +298,7 @@ function OnProjectileFired(
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
         local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         local life = EntityGetFirstComponentIncludingDisabled(projectile_id, "LifetimeComponent")
-        if proj == nil or ComponentGetValue2(proj, "lifetime") > 4 or ComponentGetValue2(life, "lifetime") > 4 then
+        if outlives(proj, 4) or outlives(life, 4) then
             if EntityGetIsAlive(projectile_id) then
                 ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
             end
