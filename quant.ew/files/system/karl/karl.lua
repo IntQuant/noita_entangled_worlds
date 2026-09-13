@@ -59,7 +59,7 @@ function rpc.send_karl(x, y, vx, vy, t, jet, rgb1, rgb2)
     end
     EntitySetComponentsWithTagEnabled(players_karl, "jetpack", jet)
     local vel = EntityGetFirstComponentIncludingDisabled(players_karl, "VelocityComponent")
-    local m = ctx.rpc_player_data.fps / ctx.my_player.fps
+    local m = util.fps_ratio(ctx.rpc_player_data.fps, ctx.my_player.fps)
     ComponentSetValue2(vel, "mVelocity", vx * m, vy * m)
 end
 
