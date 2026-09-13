@@ -1,23 +1,13 @@
-## Noita Entangled Worlds v1.6.5
+## Noita Entangled Worlds v1.6.6
 
-Many world sync, entity sync correctness and performance fixes by @rdeaton, including:
- - Kolmi-related bugs
- - Enemies having abnormally high health
- - Wands and spells falling through the floor in HMs
- - and many others
+
+
 
 ## Accepted pull requests
 
-- Add queueing to the steam reliable network channel and kick clients who are not catching up by @rdeaton in #515
-- Version save state directory instead of migration by @rdeaton in #514
-- [08/08] Rust world decode by @rdeaton in #513
-- [07/08] Enable new tests in CI by @rdeaton in #512
-- [06/08] Cleanup dead code by @rdeaton in #511
-- [05/08] Assorted entity syncing fixes by @rdeaton in #510
-- [04/08] Entity Cache and syncing changes by @rdeaton in #509
-- [03/08] Mod side performance fixes around lukki, small correctness issue by @rdeaton in #508
-- [02/08] Hot-loop performance improvements from profiling by @rdeaton in #507
-- [01/08] Clean up some input handling by @rdeaton in #506
+
+No pull requests have been accepted in this release.
+
 ## Installation
 
 
