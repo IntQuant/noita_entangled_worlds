@@ -1,3 +1,12 @@
+local function get_perk_with_id(perk_list, perk_id)
+    for key, value in pairs(perk_list) do
+        if (value.id == perk_id) then
+            return value;
+        end
+    end
+    return {}
+end
+
 local function patch_perk(perk_id, ignore_original_func, fn)
     local perk_data = get_perk_with_id(perk_list, perk_id)
     local old_func = perk_data.func
