@@ -2,7 +2,7 @@
 
 ## Accepted pull requests
 
-- Couple miscellaneous fixes by @rdeaton in #517
+- Couple miscellaneous fixes by rdeaton in #517
 - Added missing function get_perk_with_id by @AJMJ2012 in #516
 
 ## Installation
