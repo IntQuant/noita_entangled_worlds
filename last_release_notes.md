@@ -1,12 +1,9 @@
 ## Noita Entangled Worlds v1.6.6
 
-
-
-
 ## Accepted pull requests
 
-
-No pull requests have been accepted in this release.
+- Couple miscellaneous fixes by @rdeaton in #517
+- Added missing function get_perk_with_id by @AJMJ2012 in #516
 
 ## Installation
 
