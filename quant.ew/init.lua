@@ -162,6 +162,18 @@ end
 
 local last_mana = -1
 
+-- Whether a projectile with this lifetime component still exists in `frames`
+-- frames. A missing component puts no bound on the projectile's life at all,
+-- and so does a negative lifetime: rock.xml and propane_tank.xml ship with
+-- ProjectileComponent lifetime -1 and no LifetimeComponent whatsoever.
+local function outlives(component, frames)
+    if component == nil then
+        return true
+    end
+    local lifetime = ComponentGetValue2(component, "lifetime")
+    return lifetime == nil or lifetime < 0 or lifetime > frames
+end
+
 local function fire()
     local inventory_component = EntityGetFirstComponentIncludingDisabled(ctx.my_player.entity, "Inventory2Component")
     if inventory_component ~= nil then
@@ -286,7 +298,7 @@ function OnProjectileFired(
         local body = EntityGetFirstComponentIncludingDisabled(projectile_id, "PhysicsBody2Component")
         local proj = EntityGetFirstComponentIncludingDisabled(projectile_id, "ProjectileComponent")
         local life = EntityGetFirstComponentIncludingDisabled(projectile_id, "LifetimeComponent")
-        if proj == nil or ComponentGetValue2(proj, "lifetime") > 4 or ComponentGetValue2(life, "lifetime") > 4 then
+        if outlives(proj, 4) or outlives(life, 4) then
             if EntityGetIsAlive(projectile_id) then
                 ewext.sync_projectile(projectile_id, shooter_player_data.peer_id, rng)
             end
@@ -295,13 +307,15 @@ function OnProjectileFired(
             if proj ~= nil then
                 local lif = ComponentGetValue2(proj, "lifetime")
                 if lif > 0 then
-                    ComponentSetValue2(proj, "lifetime", lif * ctx.my_player.fps / shooter_player_data.fps)
+                    local m = util.fps_ratio(ctx.my_player.fps, shooter_player_data.fps)
+                    ComponentSetValue2(proj, "lifetime", lif * m)
                 end
             end
             if life ~= nil then
                 local lif = ComponentGetValue2(life, "lifetime")
                 if lif > 0 then
-                    ComponentSetValue2(life, "lifetime", lif * ctx.my_player.fps / shooter_player_data.fps)
+                    local m = util.fps_ratio(ctx.my_player.fps, shooter_player_data.fps)
+                    ComponentSetValue2(life, "lifetime", lif * m)
                 end
             end
             if body ~= nil then
@@ -342,16 +356,7 @@ function OnProjectileFiredPost(
         local vel = EntityGetFirstComponentIncludingDisabled(projectile_id, "VelocityComponent")
         if vel ~= nil then
             local x, y = ComponentGetValue2(vel, "mVelocity")
-            -- player_sync.update_fps stores math.min(60, math.floor(fps + 0.5)),
-            -- which is 0 on a stalled frame (and nan if two samples land in the
-            -- same real-world millisecond); the field is also absent until the
-            -- first update. Any of those would make this ratio inf or nan and
-            -- fling the projectile at a garbage velocity, so fall back to 1x.
-            local their_fps, my_fps = shooter_player_data.fps, ctx.my_player.fps
-            local m = 1
-            if their_fps ~= nil and my_fps ~= nil and their_fps > 0 and my_fps > 0 then
-                m = their_fps / my_fps
-            end
+            local m = util.fps_ratio(shooter_player_data.fps, ctx.my_player.fps)
             ComponentSetValue2(vel, "mVelocity", x * m, y * m)
         end
     end

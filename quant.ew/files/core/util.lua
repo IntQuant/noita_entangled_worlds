@@ -424,12 +424,27 @@ local function serialize_phys_component(phys_component)
     end
 end
 
+-- The multiplier for carrying a per-frame quantity from a peer running at
+-- `from_fps` to one running at `to_fps`. player_sync.update_fps stores
+-- math.min(60, math.floor(fps + 0.5)): its first sample is frames-since-launch
+-- over seconds-since-launch, which rounds to 0 on a peer that has spent most of
+-- its life not drawing frames, and it is nan if two samples land in the same
+-- real-world millisecond. Either of those in the denominator gives inf or nan,
+-- which then gets written into a lifetime or a velocity, so fall back to
+-- carrying the quantity over unscaled.
+function util.fps_ratio(from_fps, to_fps)
+    if from_fps ~= nil and to_fps ~= nil and from_fps > 0 and to_fps > 0 then
+        return from_fps / to_fps
+    end
+    return 1
+end
+
 local function deserialize_phys_component(phys_component, phys_info, fps)
     local x, y = GamePosToPhysicsPos(phys_info.x, phys_info.y)
     if ffi.typeof(phys_info) == PhysDataNoMotion then
         np.PhysBodySetTransform(phys_component, x, y, phys_info.r / 255 * FULL_TURN, 0, 0, 0)
     else
-        local m = fps / ctx.my_player.fps
+        local m = util.fps_ratio(fps, ctx.my_player.fps)
         np.PhysBodySetTransform(
             phys_component,
             x,
