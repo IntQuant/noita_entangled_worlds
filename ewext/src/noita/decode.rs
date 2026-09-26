@@ -136,6 +136,37 @@ impl WorldFns {
     }
 }
 
+/// Remembers what `chunk_loaded` said for the last chunk it was asked about.
+///
+/// The ChunkMap is indexed by `coord >> 9` (see `get_cell_raw`), so the answer
+/// can only change at a 512-cell boundary. World sync areas are 128-aligned
+/// and never straddle one, which turns 16384 game calls per area into one. The
+/// header comes off the network, so alignment is not assumed: the chunk is
+/// still compared per pixel, and an unaligned area just costs a few more calls.
+struct ChunkLoadedCache {
+    chunk: Option<(i32, i32)>,
+    loaded: bool,
+}
+
+impl ChunkLoadedCache {
+    fn new() -> Self {
+        Self {
+            chunk: None,
+            loaded: false,
+        }
+    }
+
+    fn is_loaded(&mut self, x: i32, y: i32, query: impl FnOnce() -> bool) -> bool {
+        // Arithmetic shift, so negative coordinates floor the way the game's do.
+        let chunk = (x >> 9, y >> 9);
+        if self.chunk != Some(chunk) {
+            self.loaded = query();
+            self.chunk = Some(chunk);
+        }
+        self.loaded
+    }
+}
+
 impl ParticleWorldState {
     /// Material id for a cell, by offset into the material list. Mirrors
     /// `world_ffi.get_material_id`.
@@ -195,6 +226,7 @@ impl ParticleWorldState {
         let mut flags = current.flags;
         let mut left = i32::from(current.length) + 1;
         let mut written = 0usize;
+        let mut chunk_loaded = ChunkLoadedCache::new();
 
         for y in top_left_y..bottom_right_y {
             for x in top_left_x..bottom_right_x {
@@ -203,7 +235,9 @@ impl ParticleWorldState {
                 // whether the pixel itself was skipped.
                 'pixel: {
                     // SAFETY: chunk_map is the game's ChunkMap for this world.
-                    if !unsafe { (fns.chunk_loaded)(chunk_map, x, y) } {
+                    if !chunk_loaded
+                        .is_loaded(x, y, || unsafe { (fns.chunk_loaded)(chunk_map, x, y) })
+                    {
                         break 'pixel;
                     }
                     // -1 means "sender had no data here", not a material.
@@ -412,5 +446,46 @@ mod tests {
     fn rejects_zero_runs() {
         let data = blob(header(0), &[]);
         assert!(parse_encoded_area(&data).is_err());
+    }
+
+    /// Counts the game calls `ChunkLoadedCache` makes over an area, walked in
+    /// the same row-major order as `decode_area`.
+    fn chunk_loaded_calls(x0: i32, y0: i32, w: i32, h: i32) -> usize {
+        let mut cache = ChunkLoadedCache::new();
+        let mut calls = 0;
+        for y in y0..y0 + h {
+            for x in x0..x0 + w {
+                cache.is_loaded(x, y, || {
+                    calls += 1;
+                    true
+                });
+            }
+        }
+        calls
+    }
+
+    #[test]
+    fn chunk_loaded_asked_once_for_an_aligned_area() {
+        assert_eq!(chunk_loaded_calls(128, 256, 128, 128), 1);
+        assert_eq!(chunk_loaded_calls(-128, -512, 128, 128), 1);
+    }
+
+    #[test]
+    fn chunk_loaded_asked_again_across_a_chunk_boundary() {
+        // Straddles x = 512, so every row starts in one chunk and ends in the
+        // next.
+        assert_eq!(chunk_loaded_calls(448, 0, 128, 128), 256);
+        // Straddles y = 0: rows below it are a different chunk.
+        assert_eq!(chunk_loaded_calls(0, -64, 128, 128), 2);
+    }
+
+    #[test]
+    fn chunk_loaded_answer_follows_the_chunk() {
+        let mut cache = ChunkLoadedCache::new();
+        assert!(cache.is_loaded(0, 0, || true));
+        // Same chunk: the cached answer stands, the query is not run.
+        assert!(cache.is_loaded(511, 511, || unreachable!()));
+        assert!(!cache.is_loaded(512, 0, || false));
+        assert!(!cache.is_loaded(-1, 0, || false));
     }
 }
