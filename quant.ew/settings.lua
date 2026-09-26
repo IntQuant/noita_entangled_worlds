@@ -348,20 +348,6 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },TODO]]
                 {
-                    id = "explosions",
-                    ui_name = "amount of radii of explosions can be handled in 1 frame",
-                    ui_description = "decrease if weird network lag, increase if weird world sync, cpu bounded",
-                    value_default = "128",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
-                    id = "cell_eater",
-                    ui_name = "amount of length of cell eater logic can be handled in 1 frame",
-                    ui_description = "decrease if weird network lag, increase if weird world sync, cpu bounded",
-                    value_default = "64",
-                    scope = MOD_SETTING_SCOPE_RUNTIME,
-                },
-                {
                     id = "disable_shield",
                     ui_name = "disable shield on death",
                     ui_description = "bool",
