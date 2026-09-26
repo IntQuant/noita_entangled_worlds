@@ -14,12 +14,13 @@ local world_sync = {}
 -- is the most expensive thing on the receive path. The native implementation
 -- calls the same NoitaPatcher-resolved game functions.
 --
--- Off by default: it mutates the live pixel grid and has not been verified in a
--- real two-player session yet, so it is opt-in until it has been. The setting
--- is also the way to turn it back off without shipping a new build.
-local use_rust_decode = ModSettingGet("quant.ew.rust_world_decode")
+-- On by default. The setting is the way to turn it back off without shipping a
+-- new build; it is read once here, so a change applies on the next game start.
+-- It replaced quant.ew.rust_world_decode, which defaulted to off - a new id so
+-- that value, saved by anyone who ever loaded that build, is not carried over.
+local use_rust_decode = ModSettingGet("quant.ew.native_world_decode")
 if use_rust_decode == nil then
-    use_rust_decode = false
+    use_rust_decode = true
 end
 local rust_decode_ready = false
 

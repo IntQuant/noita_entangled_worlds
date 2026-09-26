@@ -20,7 +20,7 @@
 //! always called.
 //!
 //! The Lua implementation remains in the tree and is still the fallback; see
-//! `quant.ew.rust_world_decode`.
+//! `quant.ew.native_world_decode`.
 
 // The DLL only ever loads into 32-bit Noita. Host builds exist so `cargo check`
 // and clippy can run on Linux, and there `decode_area` is a stub, which leaves
