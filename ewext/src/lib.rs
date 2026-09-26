@@ -195,6 +195,7 @@ fn decode_area(lua: LuaState) -> eyre::Result<ValuesOnStack> {
     let written = ExtState::with_global(|state| {
         let fns = state
             .world_fns
+            .as_mut()
             .ok_or_eyre("Native world decode is not initialized")?;
         let pws = state
             .particle_world_state
@@ -205,7 +206,7 @@ fn decode_area(lua: LuaState) -> eyre::Result<ValuesOnStack> {
         let data = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
         // SAFETY: called from the Lua world-update hook on the game's main
         // thread, which is the only place world mutation is legal.
-        unsafe { pws.decode_area(data, &fns) }
+        unsafe { pws.decode_area(data, fns) }
     })??;
 
     lua.push_integer(written as isize);
