@@ -104,14 +104,13 @@ fn cli_setup(
         .nickname
         .unwrap_or("no nickname found".to_string());
 
-    if let Some(state) = &mut state {
-        mod_manager::try_find_game_path(&mut paths, Some(state));
-    } else if let Some(p) = args.exe_path {
-        paths.noita_exe = Some(p);
-    } else {
-        panic!("noita.exe is not provided and can't find it in settings.");
-    }
-    paths::realize_noita_paths_from_noita_exe(&mut paths);
+    setup_game_paths(&mut paths, args.exe_path, |paths| {
+        if let Some(state) = &mut state {
+            mod_manager::try_find_game_path(paths, Some(state));
+        } else {
+            panic!("noita.exe is not provided and can't find it in settings.");
+        }
+    });
     mod_manager::try_find_save_path(&mut paths);
     let run_save_state = SaveState::new(save_paths.save_state_path);
     let mut cosmetics = (false, false, false);
@@ -164,6 +163,20 @@ fn cli_setup(
     )
 }
 
+fn setup_game_paths(
+    paths: &mut paths::Paths,
+    exe_path: Option<PathBuf>,
+    find_game_path: impl FnOnce(&mut paths::Paths),
+) {
+    // An explicit executable must take precedence over Steam's installed copy, as in the GUI.
+    if let Some(exe_path) = exe_path {
+        paths.noita_exe = Some(exe_path);
+    } else {
+        find_game_path(paths);
+    }
+    paths::realize_noita_paths_from_noita_exe(paths);
+}
+
 pub fn connect_cli(lobby: String, args: Args) {
     let (state, netmaninit, kind, audio, _, _) = cli_setup(args);
     let variant = if lobby.contains(':') {
@@ -214,4 +227,51 @@ pub fn host_cli(bind_addr: Option<SocketAddr>, args: Args) {
     let netman = NetManager::new(variant, netmaninit, audio);
     *netman.settings.lock().unwrap() = game_settings;
     netman.start_inner(player_path, Some(kind)).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use paths::{NOITA_QUANTEW_INSTALL, Paths, QUANTEW_PLAYER_SPRITESHEET};
+
+    #[test]
+    fn explicit_executable_overrides_saved_path_and_skips_steam_detection() {
+        let mut paths = Paths {
+            noita_exe: Some(PathBuf::from("saved/noita.exe")),
+            noita_install: Some(PathBuf::from("saved")),
+            ..Default::default()
+        };
+        let install = PathBuf::from("custom copy/Noita");
+        let exe = install.join("noita.exe");
+
+        setup_game_paths(&mut paths, Some(exe.clone()), |_| {
+            panic!("Steam detection must not run when --exe-path is provided");
+        });
+
+        assert_eq!(paths.noita_exe(), &exe);
+        assert_eq!(paths.noita_install(), &install);
+        assert_eq!(
+            paths.noita_quantew_install(),
+            &install.join(NOITA_QUANTEW_INSTALL)
+        );
+        assert_eq!(
+            paths.noita_quantew_player_spritesheet(),
+            &install
+                .join(NOITA_QUANTEW_INSTALL)
+                .join(QUANTEW_PLAYER_SPRITESHEET)
+        );
+    }
+
+    #[test]
+    fn missing_executable_uses_steam_detection() {
+        let mut paths = Paths::default();
+        let exe = PathBuf::from("steam/Noita/noita.exe");
+
+        setup_game_paths(&mut paths, None, |paths| {
+            paths.noita_exe = Some(exe.clone());
+        });
+
+        assert_eq!(paths.noita_exe(), &exe);
+        assert_eq!(paths.noita_install(), exe.parent().unwrap());
+    }
 }
