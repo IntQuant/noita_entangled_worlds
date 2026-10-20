@@ -11,7 +11,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-pc-windows-gnu
-          toolchain: 'nightly'
+          # Pinned: rust-lang/rust#159021 (first in nightly-2026-10-03) makes thread_local! use
+          # native PE TLS on windows-gnu, and ewext crashes on its first TLS access when Noita
+          # loads it. Bump the build step below together with this.
+          toolchain: 'nightly-2026-10-02'
       - name: Install extra deps
         run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-i686
 
@@ -21,8 +24,8 @@ jobs:
 
       - name: Build ewext
         run: |
-          rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-          cargo +nightly build --release --target=i686-pc-windows-gnu
+          rustup component add rust-src --toolchain nightly-2026-10-02-x86_64-unknown-linux-gnu
+          cargo +nightly-2026-10-02 build --release --target=i686-pc-windows-gnu
         working-directory: ./ewext
       - name: Copy ewext
         run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
