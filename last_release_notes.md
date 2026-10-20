@@ -1,16 +1,13 @@
 ## Noita Entangled Worlds v1.6.7
 
-
-
-
 ## Accepted pull requests
 
 - Drop explosion budget by @rdeaton in #529
 - Fix for heart tablet making players invisible etc. by @rdeaton in #528
 - Turn the Rust game decode on by default by @rdeaton in #527
 - fix(cli): honor --exe-path before Steam auto-detection by @fisHarly0 in #525
-## Installation
 
+## Installation
 
 Download and unpack `noita_proxy-win.zip` or `noita_proxy-linux.zip`, depending on your OS. After that, launch the proxy.
 
