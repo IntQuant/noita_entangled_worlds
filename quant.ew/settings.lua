@@ -292,10 +292,10 @@ local function build_settings()
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {
-                    id = "rust_world_decode",
-                    ui_name = "native world decode (experimental)",
-                    ui_description = "decode incoming terrain in ewext instead of lua. much faster, but not yet verified in a real session - turn on at your own risk",
-                    value_default = false,
+                    id = "native_world_decode",
+                    ui_name = "native world decode",
+                    ui_description = "decode incoming terrain in ewext instead of lua, which is several times faster. turn off to fall back to the lua decoder if incoming terrain looks wrong. takes effect on the next game start",
+                    value_default = true,
                     scope = MOD_SETTING_SCOPE_RUNTIME,
                 },
                 {

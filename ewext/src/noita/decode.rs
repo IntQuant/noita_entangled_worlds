@@ -12,8 +12,15 @@
 //! against hand-reversed struct layouts. That keeps the semantics identical to
 //! the proven path and avoids taking on a second copy of Noita's memory layout.
 //!
+//! The one exception is finding a cell. The game's get_cell and chunk_loaded
+//! are a few instructions of pointer arithmetic over the ChunkMap - the same
+//! walk `encode_area` has always done directly - so when their code checks out
+//! byte for byte we do that walk ourselves rather than calling them per pixel.
+//! See [`CellAccess`]. remove_cell and construct_cell do real work and are
+//! always called.
+//!
 //! The Lua implementation remains in the tree and is still the fallback; see
-//! `quant.ew.rust_world_decode`.
+//! `quant.ew.native_world_decode`.
 
 // The DLL only ever loads into 32-bit Noita. Host builds exist so `cargo check`
 // and clippy can run on Linux, and there `decode_area` is a stub, which leaves
@@ -25,6 +32,8 @@ use std::ffi::c_void;
 use super::ParticleWorldState;
 use super::ntypes::{self, CELLDATA_SIZE};
 use super::pixel::NoitaPixelRun;
+#[cfg(target_arch = "x86")]
+use super::{cell_slot, chunk_cells};
 
 /// Mirrors `struct EncodedAreaHeader` from `world.lua`'s cdef. Packed, 12 bytes.
 #[repr(C, packed)]
@@ -87,6 +96,78 @@ mod abi {
     ) -> *mut ntypes::Cell;
 }
 
+/// The game's get_cell, byte for byte, in each form NoitaPatcher might resolve:
+/// the unchecked one (noita.exe 0x89c070) and three neighbours (0x89c0d0,
+/// 0x89c140, 0x89c2d0) that return a dummy slot for an unloaded chunk. For a
+/// loaded chunk all four return exactly `cell_slot(chunk_cells(..))`, and
+/// nothing else: no allocation, no side effects. The absolute addresses in the
+/// dummy-slot forms are fine to match on, as noita.exe has no ASLR.
+pub(crate) const GET_CELL_CODE: [&[u8]; 4] = [
+    &[
+        0x55, 0x8b, 0xec, 0x56, 0x8b, 0x75, 0x08, 0x8b, 0xc6, 0x57, 0x8b, 0x7d, 0x0c, 0x81, 0xe6,
+        0xff, 0x01, 0x00, 0x00, 0x8b, 0xd7, 0xc1, 0xf8, 0x09, 0xc1, 0xfa, 0x09, 0x2d, 0x00, 0x01,
+        0x00, 0x00, 0x81, 0xea, 0x00, 0x01, 0x00, 0x00, 0x25, 0xff, 0x01, 0x00, 0x00, 0x81, 0xe2,
+        0xff, 0x01, 0x00, 0x00, 0x81, 0xe7, 0xff, 0x01, 0x00, 0x00, 0xc1, 0xe2, 0x09, 0x03, 0xd0,
+        0xc1, 0xe7, 0x09, 0x8b, 0x41, 0x08, 0x0b, 0xfe, 0x8b, 0x04, 0x90, 0x8b, 0x00, 0x8d, 0x04,
+        0xb8, 0x5f, 0x5e, 0x5d, 0xc2, 0x08, 0x00,
+    ],
+    &[
+        0x55, 0x8b, 0xec, 0x56, 0x8b, 0x75, 0x0c, 0x8b, 0xd6, 0xc1, 0xfa, 0x09, 0x57, 0x8b, 0x7d,
+        0x08, 0x81, 0xea, 0x00, 0x01, 0x00, 0x00, 0x8b, 0xc7, 0x81, 0xe2, 0xff, 0x01, 0x00, 0x00,
+        0xc1, 0xf8, 0x09, 0x2d, 0x00, 0x01, 0x00, 0x00, 0xc1, 0xe2, 0x09, 0x25, 0xff, 0x01, 0x00,
+        0x00, 0x03, 0xd0, 0x8b, 0x41, 0x08, 0x8b, 0x04, 0x90, 0x85, 0xc0, 0x75, 0x10, 0x5f, 0xa3,
+        0x20, 0x3d, 0x22, 0x01, 0xb8, 0x20, 0x3d, 0x22, 0x01, 0x5e, 0x5d, 0xc2, 0x08, 0x00, 0x8b,
+        0x00, 0x81, 0xe6, 0xff, 0x01, 0x00, 0x00, 0xc1, 0xe6, 0x09, 0x81, 0xe7, 0xff, 0x01, 0x00,
+        0x00, 0x0b, 0xf7, 0x5f, 0x8d, 0x04, 0xb0, 0x5e, 0x5d, 0xc2, 0x08, 0x00,
+    ],
+    &[
+        0x55, 0x8b, 0xec, 0x56, 0x8b, 0x75, 0x0c, 0x8b, 0xd6, 0xc1, 0xfa, 0x09, 0x57, 0x8b, 0x7d,
+        0x08, 0x81, 0xea, 0x00, 0x01, 0x00, 0x00, 0x8b, 0xc7, 0x81, 0xe2, 0xff, 0x01, 0x00, 0x00,
+        0xc1, 0xf8, 0x09, 0x2d, 0x00, 0x01, 0x00, 0x00, 0xc1, 0xe2, 0x09, 0x25, 0xff, 0x01, 0x00,
+        0x00, 0x03, 0xd0, 0x8b, 0x41, 0x08, 0x8b, 0x04, 0x90, 0x85, 0xc0, 0x75, 0x10, 0x5f, 0xa3,
+        0xb0, 0x3d, 0x22, 0x01, 0xb8, 0xb0, 0x3d, 0x22, 0x01, 0x5e, 0x5d, 0xc2, 0x08, 0x00, 0x8b,
+        0x00, 0x81, 0xe6, 0xff, 0x01, 0x00, 0x00, 0xc1, 0xe6, 0x09, 0x81, 0xe7, 0xff, 0x01, 0x00,
+        0x00, 0x0b, 0xf7, 0x5f, 0x8d, 0x04, 0xb0, 0x5e, 0x5d, 0xc2, 0x08, 0x00,
+    ],
+    &[
+        0x55, 0x8b, 0xec, 0x56, 0x8b, 0x75, 0x0c, 0x8b, 0xd6, 0xc1, 0xfa, 0x09, 0x57, 0x8b, 0x7d,
+        0x08, 0x81, 0xea, 0x00, 0x01, 0x00, 0x00, 0x8b, 0xc7, 0x81, 0xe2, 0xff, 0x01, 0x00, 0x00,
+        0xc1, 0xf8, 0x09, 0x2d, 0x00, 0x01, 0x00, 0x00, 0xc1, 0xe2, 0x09, 0x25, 0xff, 0x01, 0x00,
+        0x00, 0x03, 0xd0, 0x8b, 0x41, 0x08, 0x8b, 0x04, 0x90, 0x85, 0xc0, 0x75, 0x0b, 0x5f, 0xb8,
+        0x44, 0x46, 0x22, 0x01, 0x5e, 0x5d, 0xc2, 0x08, 0x00, 0x8b, 0x00, 0x81, 0xe6, 0xff, 0x01,
+        0x00, 0x00, 0xc1, 0xe6, 0x09, 0x81, 0xe7, 0xff, 0x01, 0x00, 0x00, 0x0b, 0xf7, 0x5f, 0x8d,
+        0x04, 0xb0, 0x5e, 0x5d, 0xc2, 0x08, 0x00,
+    ],
+];
+
+/// The game's chunk_loaded (noita.exe 0x89c1b0): `chunk_table[chunk_index] != 0`.
+pub(crate) const CHUNK_LOADED_CODE: &[u8] = &[
+    0x55, 0x8b, 0xec, 0x8b, 0x55, 0x0c, 0x8b, 0x45, 0x08, 0x8b, 0x49, 0x08, 0xc1, 0xfa, 0x09, 0xc1,
+    0xf8, 0x09, 0x81, 0xea, 0x00, 0x01, 0x00, 0x00, 0x2d, 0x00, 0x01, 0x00, 0x00, 0x81, 0xe2, 0xff,
+    0x01, 0x00, 0x00, 0x25, 0xff, 0x01, 0x00, 0x00, 0xc1, 0xe2, 0x09, 0x03, 0xd0, 0x33, 0xc0, 0x39,
+    0x04, 0x91, 0x0f, 0x95, 0xc0, 0x5d, 0xc2, 0x08, 0x00,
+];
+
+/// True if `code` begins with one of `known`.
+fn code_matches(code: &[u8], known: &[&[u8]]) -> bool {
+    known.iter().any(|k| code.starts_with(k))
+}
+
+/// How `decode_area` finds the slot for a cell.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CellAccess {
+    /// Call the game's chunk_loaded and get_cell. Used when their code is not
+    /// one of the known forms (another Noita build, or something hooking them),
+    /// and for good after a failed cross-check.
+    Game,
+    /// The code checked out, so walk the ChunkMap ourselves, but the result has
+    /// not yet been compared with the game's own on a live area. The next
+    /// decode does that first.
+    DirectUnverified,
+    /// Code checked out and results matched the game's: walk the ChunkMap.
+    Direct,
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct WorldFns {
     get_cell: abi::GetCellFn,
@@ -96,6 +177,7 @@ pub(crate) struct WorldFns {
     /// Highest material id the game knows about. Discovered at runtime on the
     /// Lua side, so it accounts for modded material sets.
     last_material_id: i16,
+    cell_access: CellAccess,
 }
 
 impl WorldFns {
@@ -118,6 +200,23 @@ impl WorldFns {
         {
             eyre::bail!("Got a null world function pointer from NoitaPatcher");
         }
+        // SAFETY: caller guarantees these are real functions in the running
+        // process, so their code is mapped and readable. The longest known form
+        // is 102 bytes; a shorter function is followed by more .text.
+        let cell_access = unsafe {
+            let read = |f: *const c_void, len| std::slice::from_raw_parts(f.cast::<u8>(), len);
+            let get_cell_len = GET_CELL_CODE.iter().map(|c| c.len()).max().unwrap_or(0);
+            if code_matches(read(get_cell, get_cell_len), &GET_CELL_CODE)
+                && code_matches(
+                    read(chunk_loaded, CHUNK_LOADED_CODE.len()),
+                    &[CHUNK_LOADED_CODE],
+                )
+            {
+                CellAccess::DirectUnverified
+            } else {
+                CellAccess::Game
+            }
+        };
         // SAFETY: caller guarantees these are the real world_ffi functions, and
         // the signatures match world_ffi.lua's cdef block.
         unsafe {
@@ -131,9 +230,76 @@ impl WorldFns {
                     construct_cell,
                 ),
                 last_material_id,
+                cell_access,
             })
         }
     }
+}
+
+/// Remembers a per-chunk lookup - whether it is loaded, or its cell array -
+/// for the last chunk it was asked about.
+///
+/// The ChunkMap is indexed by `coord >> 9` (see `chunk_index`), so the answer
+/// can only change at a 512-cell boundary. World sync areas are 128-aligned
+/// and never straddle one, which turns 16384 lookups per area into one. The
+/// header comes off the network, so alignment is not assumed: the chunk is
+/// still compared per pixel, and an unaligned area just costs a few more.
+struct ChunkCache<T> {
+    chunk: Option<(i32, i32)>,
+    value: T,
+}
+
+impl<T: Copy> ChunkCache<T> {
+    fn new(value: T) -> Self {
+        Self { chunk: None, value }
+    }
+
+    fn get(&mut self, x: i32, y: i32, query: impl FnOnce() -> T) -> T {
+        // Arithmetic shift, so negative coordinates floor the way the game's do.
+        let chunk = (x >> 9, y >> 9);
+        if self.chunk != Some(chunk) {
+            self.value = query();
+            self.chunk = Some(chunk);
+        }
+        self.value
+    }
+}
+
+/// Compare the direct ChunkMap walk with the game's chunk_loaded and get_cell
+/// for every cell of an area. Returns how many loaded cells were compared, or
+/// `None` on the first disagreement.
+///
+/// # Safety
+///
+/// Same as `decode_area`.
+#[cfg(target_arch = "x86")]
+unsafe fn cross_check_cell_access(
+    chunk_map: *mut c_void,
+    fns: &WorldFns,
+    (x0, y0): (i32, i32),
+    (x1, y1): (i32, i32),
+) -> Option<usize> {
+    let mut compared = 0;
+    for y in y0..y1 {
+        for x in x0..x1 {
+            // SAFETY: chunk_map is the live ChunkMap; get_cell is only called
+            // once the game itself says the chunk is loaded.
+            unsafe {
+                let cells = chunk_cells(chunk_map, x, y);
+                if (fns.chunk_loaded)(chunk_map, x, y) == cells.is_null() {
+                    return None;
+                }
+                if cells.is_null() {
+                    continue;
+                }
+                if (fns.get_cell)(chunk_map, x, y) != cell_slot(cells, x, y) {
+                    return None;
+                }
+            }
+            compared += 1;
+        }
+    }
+    Some(compared)
 }
 
 impl ParticleWorldState {
@@ -174,7 +340,7 @@ impl ParticleWorldState {
     pub(crate) unsafe fn decode_area(
         &mut self,
         data: &[u8],
-        fns: &WorldFns,
+        fns: &mut WorldFns,
     ) -> eyre::Result<usize> {
         let (header, runs, run_count) = parse_encoded_area(data)?;
 
@@ -188,6 +354,25 @@ impl ParticleWorldState {
         let grid_world = self._world_ptr;
         let chunk_map = self.chunk_map_ptr;
 
+        if fns.cell_access == CellAccess::DirectUnverified {
+            // SAFETY: as for this function.
+            let checked = unsafe {
+                cross_check_cell_access(
+                    chunk_map,
+                    fns,
+                    (top_left_x, top_left_y),
+                    (bottom_right_x, bottom_right_y),
+                )
+            };
+            match checked {
+                None => fns.cell_access = CellAccess::Game,
+                // Nothing loaded here to compare against; try the next area.
+                Some(0) => {}
+                Some(_) => fns.cell_access = CellAccess::Direct,
+            }
+        }
+        let direct = fns.cell_access != CellAccess::Game;
+
         let mut run_ix = 0usize;
         // SAFETY: parse_encoded_area verified there are at least run_count runs.
         let mut current = unsafe { runs.read_unaligned() };
@@ -195,6 +380,8 @@ impl ParticleWorldState {
         let mut flags = current.flags;
         let mut left = i32::from(current.length) + 1;
         let mut written = 0usize;
+        let mut loaded_cache = ChunkCache::new(false);
+        let mut cells_cache = ChunkCache::new(std::ptr::null_mut());
 
         for y in top_left_y..bottom_right_y {
             for x in top_left_x..bottom_right_x {
@@ -202,16 +389,29 @@ impl ParticleWorldState {
                 // run bookkeeping below must run for every pixel regardless of
                 // whether the pixel itself was skipped.
                 'pixel: {
-                    // SAFETY: chunk_map is the game's ChunkMap for this world.
-                    if !unsafe { (fns.chunk_loaded)(chunk_map, x, y) } {
-                        break 'pixel;
-                    }
                     // -1 means "sender had no data here", not a material.
                     if new_material == -1 {
                         break 'pixel;
                     }
-                    // SAFETY: the chunk is loaded, so this slot exists.
-                    let ppixel = unsafe { (fns.get_cell)(chunk_map, x, y) };
+                    let ppixel = if direct {
+                        // SAFETY: chunk_map is the game's ChunkMap for this
+                        // world, and cells is non-null for the chunk of (x, y).
+                        let cells =
+                            cells_cache.get(x, y, || unsafe { chunk_cells(chunk_map, x, y) });
+                        if cells.is_null() {
+                            break 'pixel;
+                        }
+                        unsafe { cell_slot(cells, x, y) }
+                    } else {
+                        // SAFETY: chunk_map is the game's ChunkMap for this
+                        // world, and get_cell only runs for a loaded chunk.
+                        if !loaded_cache
+                            .get(x, y, || unsafe { (fns.chunk_loaded)(chunk_map, x, y) })
+                        {
+                            break 'pixel;
+                        }
+                        unsafe { (fns.get_cell)(chunk_map, x, y) }
+                    };
                     if ppixel.is_null() {
                         break 'pixel;
                     }
@@ -297,7 +497,7 @@ impl ParticleWorldState {
     pub(crate) unsafe fn decode_area(
         &mut self,
         _data: &[u8],
-        _fns: &WorldFns,
+        _fns: &mut WorldFns,
     ) -> eyre::Result<usize> {
         eyre::bail!("Native world decode is only implemented for 32-bit x86 (Noita's target)")
     }
@@ -412,5 +612,66 @@ mod tests {
     fn rejects_zero_runs() {
         let data = blob(header(0), &[]);
         assert!(parse_encoded_area(&data).is_err());
+    }
+
+    /// Counts the lookups `ChunkCache` makes over an area, walked in the same
+    /// row-major order as `decode_area`.
+    fn chunk_loaded_calls(x0: i32, y0: i32, w: i32, h: i32) -> usize {
+        let mut cache = ChunkCache::new(false);
+        let mut calls = 0;
+        for y in y0..y0 + h {
+            for x in x0..x0 + w {
+                cache.get(x, y, || {
+                    calls += 1;
+                    true
+                });
+            }
+        }
+        calls
+    }
+
+    #[test]
+    fn chunk_loaded_asked_once_for_an_aligned_area() {
+        assert_eq!(chunk_loaded_calls(128, 256, 128, 128), 1);
+        assert_eq!(chunk_loaded_calls(-128, -512, 128, 128), 1);
+    }
+
+    #[test]
+    fn chunk_loaded_asked_again_across_a_chunk_boundary() {
+        // Straddles x = 512, so every row starts in one chunk and ends in the
+        // next.
+        assert_eq!(chunk_loaded_calls(448, 0, 128, 128), 256);
+        // Straddles y = 0: rows below it are a different chunk.
+        assert_eq!(chunk_loaded_calls(0, -64, 128, 128), 2);
+    }
+
+    #[test]
+    fn chunk_loaded_answer_follows_the_chunk() {
+        let mut cache = ChunkCache::new(false);
+        assert!(cache.get(0, 0, || true));
+        // Same chunk: the cached answer stands, the query is not run.
+        assert!(cache.get(511, 511, || unreachable!()));
+        assert!(!cache.get(512, 0, || false));
+        assert!(!cache.get(-1, 0, || false));
+    }
+
+    #[test]
+    fn known_game_code_matches_only_exactly() {
+        for code in GET_CELL_CODE {
+            // Followed by whatever comes next in .text.
+            let mut padded = code.to_vec();
+            padded.extend_from_slice(&[0xcc; 32]);
+            assert!(code_matches(&padded, &GET_CELL_CODE));
+            // A hook or a different build changes the bytes.
+            let mut patched = padded.clone();
+            patched[0] = 0xe9;
+            assert!(!code_matches(&patched, &GET_CELL_CODE));
+            let mut tweaked = padded;
+            tweaked[code.len() - 4] ^= 1;
+            assert!(!code_matches(&tweaked, &GET_CELL_CODE));
+        }
+        assert!(code_matches(CHUNK_LOADED_CODE, &[CHUNK_LOADED_CODE]));
+        assert!(!code_matches(&CHUNK_LOADED_CODE[1..], &[CHUNK_LOADED_CODE]));
+        assert!(!code_matches(GET_CELL_CODE[0], &[CHUNK_LOADED_CODE]));
     }
 }
