@@ -1,10 +1,14 @@
-## Noita Entangled Worlds v1.6.6
+## Noita Entangled Worlds v1.6.7
+
+
+
 
 ## Accepted pull requests
 
-- Couple miscellaneous fixes by @rdeaton in #517
-- Added missing function get_perk_with_id by @AJMJ2012 in #516
-
+- Drop explosion budget by @rdeaton in #529
+- Fix for heart tablet making players invisible etc. by @rdeaton in #528
+- Turn the Rust game decode on by default by @rdeaton in #527
+- fix(cli): honor --exe-path before Steam auto-detection by @fisHarly0 in #525
 ## Installation
 
 
