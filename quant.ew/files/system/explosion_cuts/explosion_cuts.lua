@@ -110,7 +110,7 @@ local function hole(item)
     return r
 end
 
-local function update(ent, count)
+local function update(ent)
     local proj = EntityGetFirstComponentIncludingDisabled(ent, "ProjectileComponent")
     if
         proj ~= nil
@@ -145,17 +145,12 @@ local function update(ent, count)
         end
         alive[ent].del = { x, y, ComponentGetValue2(mat, "radius"), ComponentGetValue2(mat, "to_material") }
     end
-    local l
-    if count > 0 then
-        l = hole(ent)
-        if l ~= nil then
-            if alive[ent] == nil then
-                alive[ent] = {}
-            end
-            alive[ent].eater = true
+    if hole(ent) ~= nil then
+        if alive[ent] == nil then
+            alive[ent] = {}
         end
+        alive[ent].eater = true
     end
-    return l or 0
 end
 
 function rpc.check_mats(new_mats, ping)
@@ -192,53 +187,51 @@ function mod.on_world_update()
     if not ctx.is_host then
         return
     end
-    local count1 = tonumber(ModSettingGet("quant.ew.explosions") or 128) or 128
-    local count2 = tonumber(ModSettingGet("quant.ew.cell_eater") or 64) or 64
+    -- Everything is sent the frame it happens. This used to be capped per frame
+    -- (summed explosion radii, cell eater travel) and the rest carried over, to
+    -- spread the proxy's terrain work and the resulting world sync to peers.
+    -- Peers now apply that terrain natively, so the spreading was just latency.
     for ent, data in pairs(alive) do
         if not EntityGetIsAlive(ent) then
-            if count1 > 0 then
-                if data.expl ~= nil then
-                    count1 = count1 - data.expl[3]
-                    local inp = math.floor(data.expl[1])
-                        .. " "
-                        .. math.floor(data.expl[2])
-                        .. " "
-                        .. math.floor(data.expl[3])
-                        .. " "
-                        .. math.floor(data.expl[4])
-                        .. " "
-                        .. math.floor(data.expl[5])
-                        .. " "
-                        .. tostring(data.expl[6])
-                        .. " "
-                        .. tostring(data.expl[7])
-                        .. " "
-                        .. (mats[data.expl[8] or "air"] or 0)
-                        .. " "
-                        .. math.floor(data.expl[9])
-                    net.proxy_send("cut_through_world_explosion", inp)
-                    exists = true
-                end
-                if data.del ~= nil then
-                    count1 = count1 - data.del[3]
-                    local inp = math.floor(data.del[1])
-                        .. " "
-                        .. math.floor(data.del[2])
-                        .. " "
-                        .. math.floor(data.del[3])
-                        .. " "
-                        .. math.floor(data.del[4])
-                    net.proxy_send("cut_through_world_circle", inp)
-                end
-                alive[ent] = nil
-                hole_last[ent] = nil
+            if data.expl ~= nil then
+                local inp = math.floor(data.expl[1])
+                    .. " "
+                    .. math.floor(data.expl[2])
+                    .. " "
+                    .. math.floor(data.expl[3])
+                    .. " "
+                    .. math.floor(data.expl[4])
+                    .. " "
+                    .. math.floor(data.expl[5])
+                    .. " "
+                    .. tostring(data.expl[6])
+                    .. " "
+                    .. tostring(data.expl[7])
+                    .. " "
+                    .. (mats[data.expl[8] or "air"] or 0)
+                    .. " "
+                    .. math.floor(data.expl[9])
+                net.proxy_send("cut_through_world_explosion", inp)
+                exists = true
             end
+            if data.del ~= nil then
+                local inp = math.floor(data.del[1])
+                    .. " "
+                    .. math.floor(data.del[2])
+                    .. " "
+                    .. math.floor(data.del[3])
+                    .. " "
+                    .. math.floor(data.del[4])
+                net.proxy_send("cut_through_world_circle", inp)
+            end
+            alive[ent] = nil
+            hole_last[ent] = nil
         else
-            count2 = count2 - update(ent, count2)
+            update(ent)
         end
     end
     for _, ent in ipairs(new_ents) do
-        update(ent, 1)
+        update(ent)
     end
     new_ents = {}
     if exists then
