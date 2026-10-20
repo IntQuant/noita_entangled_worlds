@@ -4,9 +4,20 @@ on: [push, pull_request]
 
 jobs:
   build-mod:
-    runs-on: ubuntu-22.04
+    # Only hosts the container below; the build itself runs on debian.
+    runs-on: ubuntu-24.04
+    # ewext links with the system mingw toolchain, and Rust's windows-gnu targets need at least
+    # binutils 2.44, GCC 14.2 and mingw-w64 12.0 (rustc book, platform-support/windows-gnu).
+    # Older ones build a DLL whose native TLS crashes when Noita loads it. Debian trixie ships
+    # exactly those versions; no GitHub-hosted Ubuntu runner does yet.
+    container: debian:trixie
     name: Build mod and ewext
     steps:
+      # The container runs as root and has none of the runner image's tools.
+      - name: Install build deps
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl git zstd python3 gcc libc6-dev gcc-mingw-w64-i686
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -15,8 +26,6 @@ jobs:
           # native PE TLS on windows-gnu, and ewext crashes on its first TLS access when Noita
           # loads it. Bump the build step below together with this.
           toolchain: 'nightly-2026-10-02'
-      - name: Install extra deps
-        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-i686
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -31,7 +40,7 @@ jobs:
         run: cp ewext/target/i686-pc-windows-gnu/release/ewext.dll quant.ew/ewext.dll
 
       - name: Create archive
-        run: python scripts/ci_make_archives.py mod
+        run: python3 scripts/ci_make_archives.py mod
 
       - uses: actions/upload-artifact@v4
         with:
